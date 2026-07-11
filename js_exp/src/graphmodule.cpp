@@ -776,7 +776,7 @@ bool GraphModule::Step()
     if(simRunParam.triangulatePolygons){
         simRunParam.triangulatePolygons=false;
         if (simDynParam.autoRegenerateTextures) {
-            solver.fillAllTextures();
+            solver.fillAllTextures(simDynParam.textureGenMode);
         }
         //solver.polyLib.Triangulation(polygonsList);
         solver.polyLib.triangles_draw_vertex=solver.polyLib.TriangulationPolygon(polygonsList, false, solver.palette, simDynParam.enablePolygonMerging, simDynParam.removeOverlappingPolygons);

@@ -402,6 +402,9 @@ void GraphModule::draw_ImGui() {
     ImGui::SliderFloat("Texture UV Rotation", &simDynParam.textureUVAngle, 0.0f, 360.0f, "%.1f");
     ImGui::Checkbox("Auto-Regen on Triangulate", &simDynParam.autoRegenerateTextures);
 
+    const char* genModes[] = { "Wavy Waves", "High Contrast", "Geometric Chao" };
+    ImGui::Combo("Texture Style", &simDynParam.textureGenMode, genModes, IM_ARRAYSIZE(genModes));
+
     int minDepth = (int)solver.settings.function_depth.min;
     int maxDepth = (int)solver.settings.function_depth.max;
     ImGui::SetNextItemWidth(100.0f);
@@ -416,7 +419,7 @@ void GraphModule::draw_ImGui() {
 
     if (ImGui::Button("Regenerate All Textures"))
     {
-        solver.fillAllTextures();
+        solver.fillAllTextures(simDynParam.textureGenMode);
     }
     ImGui::Separator();
 

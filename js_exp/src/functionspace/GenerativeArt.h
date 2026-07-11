@@ -239,7 +239,7 @@ public:
         : settings(settings)
     {}
 
-    bool generate(std::vector<uint8_t>& colors) const
+    bool generate(std::vector<uint8_t>& colors, int genMode = 0) const
     {
         // todo random device is used to seed the random number generators. This does maybe not work on some systems...
         std::random_device rd;
@@ -257,6 +257,7 @@ public:
 
         const RandomFunction rf(function_prng, depth_dist(function_prng),
                                 settings.function_param,
+                                genMode,
                                 settings.unary_function_pool_size,
                                 settings.binary_function_pool_size);
 
@@ -435,7 +436,7 @@ public:
     // Generate textures
 
 
-    bool generate_texture(std::vector<uint8_t>& colors, Image_statistics& stat, unsigned int randSeed,  unsigned int palette) const
+    bool generate_texture(std::vector<uint8_t>& colors, Image_statistics& stat, unsigned int randSeed,  unsigned int palette, int genMode = 0) const
     {
         // todo random device is used to seed the random number generators. This does maybe not work on some systems...
         std::random_device rd;
@@ -453,6 +454,7 @@ public:
 
         const RandomFunction rf(function_prng, 3, //depth_dist(function_prng),
                                 settings.function_param,
+                                genMode,
                                 settings.unary_function_pool_size,
                                 settings.binary_function_pool_size);
 

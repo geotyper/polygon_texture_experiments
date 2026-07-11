@@ -39,8 +39,8 @@ public:
 
     Image_statistics image_statistics;
 
-    bool generate_image();
-    void fillAllTextures();
+    bool generate_image(int genMode = 0);
+    void fillAllTextures(int genMode = 0);
 
     Image_statistics stat;
 

@@ -80,10 +80,10 @@ void Solver::texturesInit()
 }
 
 
-bool Solver::generate_image()
+bool Solver::generate_image(int genMode)
 {
 
-    auto res=ga.generate_texture(colors, stat, (unsigned int)randomFloat(0,100000), palette);
+    auto res=ga.generate_texture(colors, stat, (unsigned int)randomFloat(0,100000), palette, genMode);
 
     if(res==false)
         return false;
@@ -118,13 +118,13 @@ bool Solver::generate_image()
 }
 
 
-void Solver::fillAllTextures()
+void Solver::fillAllTextures(int genMode)
 {
     GLsizei const w = static_cast<GLsizei>(function_image.width);
     GLsizei const h = static_cast<GLsizei>(function_image.height);
     for (size_t i = 0; i < textureIndexList.size(); ++i)
     {
-        ga.generate_texture(colors, stat, (unsigned int)randomFloat(0, 100000), palette);
+        ga.generate_texture(colors, stat, (unsigned int)randomFloat(0, 100000), palette, genMode);
         glBindTexture(GL_TEXTURE_2D, textureIndexList[i]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, colors.data());
     }

@@ -108,14 +108,45 @@ public:
      */
     RandomFunction(std::default_random_engine& prng, unsigned int depth,
                    const Domain<float>& param_domain,
+                   int genMode = 0,
                    const size_t num_unary_functions = FunctionPool::unary.size(),
                    const size_t num_binary_functions = FunctionPool::binary.size())
         : depth(depth)
     {
         assert(depth > 0);
 
-        std::uniform_int_distribution<unsigned int> unary_dist(0, static_cast<unsigned int>(std::min(FunctionPool::unary.size(), num_unary_functions))-1);
-        std::uniform_int_distribution<unsigned int> binary_dist(0, static_cast<unsigned int>(std::min(FunctionPool::binary.size(), num_unary_functions))-1);
+        std::vector<unsigned int> allowed_unary;
+        std::vector<unsigned int> allowed_binary;
+
+        if (genMode == 0) // Wavy Waves (no exponential growth!)
+        {
+            allowed_unary = {0, 1, 6, 7, 8}; // sinf, cosf, tanhf, identity, negative
+            allowed_binary = {0, 1, 3};      // +, -, sin(a*b)
+        }
+        else if (genMode == 2) // Geometric Chao
+        {
+            allowed_unary = {0, 1, 6, 7, 8, 9}; // sinf, cosf, tanhf, identity, negative, square
+            allowed_binary = {0, 1, 2, 3};      // +, -, *, sin(a*b)
+        }
+        else // High Contrast (Original)
+        {
+            allowed_unary = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}; // all functions
+            allowed_binary = {0, 1, 2, 3};                  // all binary
+        }
+
+        auto filter_indices = [](std::vector<unsigned int>& vec, size_t limit) {
+            std::vector<unsigned int> filtered;
+            for (auto idx : vec) {
+                if (idx < limit) filtered.push_back(idx);
+            }
+            if (filtered.empty()) filtered.push_back(0);
+            vec = filtered;
+        };
+        filter_indices(allowed_unary, num_unary_functions);
+        filter_indices(allowed_binary, num_binary_functions);
+
+        std::uniform_int_distribution<unsigned int> unary_rand_dist(0, allowed_unary.size() - 1);
+        std::uniform_int_distribution<unsigned int> binary_rand_dist(0, allowed_binary.size() - 1);
         std::uniform_int_distribution<unsigned int> int_dist(0, 99);
         std::uniform_real_distribution<argument_type> param_dist(param_domain.min, param_domain.max);
 
@@ -128,15 +159,15 @@ public:
             if(r < 33)
             {
                 type = binary;
-                function_index = binary_dist(prng);
-                child_function_1 = new RandomFunction(prng, depth - 1, param_domain, num_unary_functions, num_binary_functions);
-                child_function_2 = new RandomFunction(prng, depth - 1, param_domain, num_unary_functions, num_binary_functions);
+                function_index = allowed_binary[binary_rand_dist(prng)];
+                child_function_1 = new RandomFunction(prng, depth - 1, param_domain, genMode, num_unary_functions, num_binary_functions);
+                child_function_2 = new RandomFunction(prng, depth - 1, param_domain, genMode, num_unary_functions, num_binary_functions);
             }
             else
             {
                 type = unary;
-                function_index = unary_dist(prng);
-                child_function_1 = new RandomFunction(prng, depth - 1, param_domain, num_unary_functions, num_binary_functions);
+                function_index = allowed_unary[unary_rand_dist(prng)];
+                child_function_1 = new RandomFunction(prng, depth - 1, param_domain, genMode, num_unary_functions, num_binary_functions);
             }
         }
         else
