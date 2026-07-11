@@ -247,6 +247,8 @@ struct SimDynamicParameters{
     float smoothingPointsPerUnit = 0.2f;
     float smoothingZoom = 1.0f;
     int subdivisionDepth = 0;
+    int subdivisionMode = 0; // 0: Centroid, 1: Skeleton
+    bool enablePolygonMerging = false;
     float subdivisionMinArea = 500.0f;
     glm::vec3 constraintColor = glm::vec3(0.75f, 0.90f, 0.75f);
     bool enableFractalSubdivision = false;

@@ -310,8 +310,17 @@ void PolyLib::DCEL(std::vector<PointData> &pointList, std::vector<Constraint> &c
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Arrangement_2.h>
 #include <CGAL/Arr_segment_traits_2.h>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Polygon_2.h>
+#include <CGAL/create_straight_skeleton_2.h>
+#include <boost/shared_ptr.hpp>
 
-static void subdividePolygonRecursive(const std::vector<glm::vec2>& poly, int currentDepth, int maxDepth, std::vector<std::vector<glm::vec2>>& outputList) {
+typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+typedef CGAL::Polygon_2<K> Polygon_2;
+typedef CGAL::Straight_skeleton_2<K> Ss;
+typedef boost::shared_ptr<Ss> SsPtr;
+
+static void subdividePolygonCentroidRecursive(const std::vector<glm::vec2>& poly, int currentDepth, int maxDepth, std::vector<std::vector<glm::vec2>>& outputList) {
     int n = poly.size();
     int nUnique = n;
     if (n >= 2 && glm::distance(poly.front(), poly.back()) < 1e-4f) {
@@ -341,7 +350,80 @@ static void subdividePolygonRecursive(const std::vector<glm::vec2>& poly, int cu
         glm::vec2 v2 = poly[(i + 1) % nUnique];
 
         std::vector<glm::vec2> subPoly = { v1, v2, centroid, v1 };
-        subdividePolygonRecursive(subPoly, currentDepth + 1, maxDepth, outputList);
+        subdividePolygonCentroidRecursive(subPoly, currentDepth + 1, maxDepth, outputList);
+    }
+}
+
+static void subdividePolygonSkeletonRecursive(const std::vector<glm::vec2>& poly, int currentDepth, int maxDepth, std::vector<std::vector<glm::vec2>>& outputList) {
+    int n = poly.size();
+    int nUnique = n;
+    if (n >= 2 && glm::distance(poly.front(), poly.back()) < 1e-4f) {
+        nUnique = n - 1;
+    }
+
+    if (nUnique < 3) {
+        outputList.push_back(poly);
+        return;
+    }
+
+    if (currentDepth >= maxDepth) {
+        outputList.push_back(poly);
+        return;
+    }
+
+    // Convert to CGAL Polygon_2
+    Polygon_2 cgalPoly;
+    for (int i = 0; i < nUnique; ++i) {
+        cgalPoly.push_back(K::Point_2(poly[i].x, poly[i].y));
+    }
+
+    if (!cgalPoly.is_simple()) {
+        subdividePolygonCentroidRecursive(poly, currentDepth, maxDepth, outputList);
+        return;
+    }
+
+    if (cgalPoly.is_clockwise_oriented()) {
+        cgalPoly.reverse_orientation();
+    }
+
+    try {
+        SsPtr ss = CGAL::create_interior_straight_skeleton_2(cgalPoly);
+        if (!ss) {
+            subdividePolygonCentroidRecursive(poly, currentDepth, maxDepth, outputList);
+            return;
+        }
+
+        if (ss->size_of_faces() == 0) {
+            subdividePolygonCentroidRecursive(poly, currentDepth, maxDepth, outputList);
+            return;
+        }
+
+        for (auto fit = ss->faces_begin(); fit != ss->faces_end(); ++fit) {
+            std::vector<glm::vec2> subPoly;
+            auto h = fit->halfedge();
+            auto curr = h;
+            do {
+                auto p = curr->vertex()->point();
+                subPoly.push_back(glm::vec2(CGAL::to_double(p.x()), CGAL::to_double(p.y())));
+                curr = curr->next();
+            } while (curr != h);
+
+            if (!subPoly.empty()) {
+                subPoly.push_back(subPoly.front()); // Close the loop
+            }
+
+            subdividePolygonSkeletonRecursive(subPoly, currentDepth + 1, maxDepth, outputList);
+        }
+    } catch (...) {
+        subdividePolygonCentroidRecursive(poly, currentDepth, maxDepth, outputList);
+    }
+}
+
+static void subdividePolygonRecursive(const std::vector<glm::vec2>& poly, int currentDepth, int maxDepth, int mode, std::vector<std::vector<glm::vec2>>& outputList) {
+    if (mode == 1) {
+        subdividePolygonSkeletonRecursive(poly, currentDepth, maxDepth, outputList);
+    } else {
+        subdividePolygonCentroidRecursive(poly, currentDepth, maxDepth, outputList);
     }
 }
 
@@ -469,7 +551,7 @@ vector<vector<glm::vec2>> PolyLib::testForPolygons(std::vector<PointData> &point
             }
 
             if (area > simParam.subdivisionMinArea) {
-                subdividePolygonRecursive(poly, 0, simParam.subdivisionDepth, subdividedResult);
+                subdividePolygonRecursive(poly, 0, simParam.subdivisionDepth, simParam.subdivisionMode, subdividedResult);
             } else {
                 subdividedResult.push_back(poly);
             }
@@ -521,14 +603,14 @@ vector<vector<glm::vec2>> PolyLib::offsetPolygons(float offset)
 void PolyLib::Triangulation(vector<vector<glm::vec2>>& polygonList_in, int palette)
 {
      triangles_draw_vertex.clear();
-     triangles_draw_vertex=arr.triangulatePolygons(polygonList_in,32, false,palette);
+     triangles_draw_vertex=arr.triangulatePolygons(polygonList_in,32, false,palette, false);
      triangles_draw_index=arr.triangles_draw_index;
 }
 
-vector<vector<TrianglesDrawStruct>> PolyLib::TriangulationPolygon(vector<vector<glm::vec2>>& polygonList_in, bool offset, int palette)
+vector<vector<TrianglesDrawStruct>> PolyLib::TriangulationPolygon(vector<vector<glm::vec2>>& polygonList_in, bool offset, int palette, bool mergePolygons)
 {
      vector<vector<TrianglesDrawStruct>> result;
-     result=arr.triangulatePolygons(polygonList_in,32, offset,palette);
+     result=arr.triangulatePolygons(polygonList_in,32, offset,palette, mergePolygons);
      return result;
 }
 

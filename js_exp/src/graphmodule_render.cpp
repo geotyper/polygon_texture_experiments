@@ -194,6 +194,13 @@ void GraphModule::draw_ImGui() {
             simRunParam.generateOffset=true;
             simRunParam.triangulatePolygons=true;
         }
+        const char* subModes[] = { "Centroid", "Skeleton" };
+        if (ImGui::Combo("Subdivision Mode", &simDynParam.subdivisionMode, subModes, IM_ARRAYSIZE(subModes)))
+        {
+            simRunParam.generatePolygons=true;
+            simRunParam.generateOffset=true;
+            simRunParam.triangulatePolygons=true;
+        }
         if (simDynParam.subdivisionDepth > 0)
         {
             if(ImGui::SliderFloat("Subdivision Min Area", &simDynParam.subdivisionMinArea, 50.0f, 2000.0f, "%.1f"))
@@ -229,6 +236,10 @@ void GraphModule::draw_ImGui() {
         {
             solver.palette = (unsigned int)currentPalette;
             simRunParam.recolorPolygons = true;
+        }
+        if (ImGui::Checkbox("Merge Same-Color Neighbors", &simDynParam.enablePolygonMerging))
+        {
+            simRunParam.triangulatePolygons = true;
         }
 
         const char* bgPresets[] = { "Original Dark Blue", "Dark Gray", "Cinematic Black", "Charcoal", "Cream / Sepia", "Pure White", "Custom Color" };
