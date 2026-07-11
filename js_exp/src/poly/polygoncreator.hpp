@@ -49,6 +49,8 @@ public:
 
     vector<vector<VertexPosUV>> triangles_draw_vertexUV;
     vector<vector<VertexPosUV>> triangles_draw_vertexOffsetUV;
+    vector<int> triangles_parent_polygon_id;
+    vector<int> trianglesOffset_parent_polygon_id;
 
     vector<pair<int,float>> areaList;
     vector<pair<int,float>> areaListOffset;

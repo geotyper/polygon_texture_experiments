@@ -663,8 +663,17 @@ void GraphModule::draw_PolygonsUV(vector<vector<VertexPosUV>>& triangulatePolygo
 
                   glBindVertexArray(graphicProcessor.polygonGA.vao);
                   glActiveTexture(GL_TEXTURE0);
-                  int textureIndex = i % solver.textureIndexList.size();
-                  glBindTexture(GL_TEXTURE_2D,solver.textureIndexList[textureIndex]);
+                  int textureIndex = 0;
+                  if (isOffset) {
+                      if (ip >= 0 && ip < (int)solver.polyLib.arr.trianglesOffset_parent_polygon_id.size()) {
+                          textureIndex = solver.polyLib.arr.trianglesOffset_parent_polygon_id[ip] % solver.textureIndexList.size();
+                      }
+                  } else {
+                      if (ip >= 0 && ip < (int)solver.polyLib.arr.triangles_parent_polygon_id.size()) {
+                          textureIndex = solver.polyLib.arr.triangles_parent_polygon_id[ip] % solver.textureIndexList.size();
+                      }
+                  }
+                  glBindTexture(GL_TEXTURE_2D, solver.textureIndexList[textureIndex]);
                   // Set the sampler texture unit to 0
                   glUniform1i(graphicProcessor.polygonGA.uniform.ubo, 0);
 

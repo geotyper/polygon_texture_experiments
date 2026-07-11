@@ -217,12 +217,13 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
     triangles_draw_index.clear();
 
 
-    if(offset==true)
+    if(offset)
     {
        polygonDataOffset.clear();
        areaListOffset.clear();
        triangles_draw_vertexOffsetUV.clear();
        polygonColorIndicesOffset.clear();
+       trianglesOffset_parent_polygon_id.clear();
     }
     else
     {
@@ -230,6 +231,7 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
        areaList.clear();
        triangles_draw_vertexUV.clear();
        polygonColorIndices.clear();
+       triangles_parent_polygon_id.clear();
     }
 
     vector<glm::vec4> colorList = generateColorList(palette, num_colors);
@@ -354,11 +356,13 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                                 triangles_draw_vertexOffsetUV.push_back(tempVertexUV);
                                 polygonDataOffset.push_back(tempPolygon);
                                 polygonColorIndicesOffset.push_back(cIdx);
+                                trianglesOffset_parent_polygon_id.push_back(cIdx);
                             } else {
                                 areaList.push_back({counter, abs(areaTri)});
                                 triangles_draw_vertexUV.push_back(tempVertexUV);
                                 polygonData.push_back(tempPolygon);
                                 polygonColorIndices.push_back(cIdx);
+                                triangles_parent_polygon_id.push_back(cIdx);
                             }
                             counter++;
                         }
@@ -475,11 +479,13 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                                 triangles_draw_vertexOffsetUV.push_back(tempVertexUV);
                                 polygonDataOffset.push_back(tempPolygon);
                                 polygonColorIndicesOffset.push_back(rnd_color);
+                                trianglesOffset_parent_polygon_id.push_back(ip);
                             } else {
                                 areaList.push_back({counter, abs(areaTri)});
                                 triangles_draw_vertexUV.push_back(tempVertexUV);
                                 polygonData.push_back(tempPolygon);
                                 polygonColorIndices.push_back(rnd_color);
+                                triangles_parent_polygon_id.push_back(ip);
                             }
                             counter++;
                         }
