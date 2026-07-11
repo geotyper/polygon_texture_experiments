@@ -122,6 +122,12 @@ void Solver::fillAllTextures(int genMode)
 {
     GLsizei const w = static_cast<GLsizei>(function_image.width);
     GLsizei const h = static_cast<GLsizei>(function_image.height);
+
+    // Update the separate preview texture (ID 2) so it stays in sync
+    ga.generate_texture(colors, stat, (unsigned int)randomFloat(0, 100000), palette, genMode);
+    glBindTexture(GL_TEXTURE_2D, function_image.id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, colors.data());
+
     for (size_t i = 0; i < textureIndexList.size(); ++i)
     {
         ga.generate_texture(colors, stat, (unsigned int)randomFloat(0, 100000), palette, genMode);

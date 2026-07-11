@@ -560,27 +560,21 @@ public:
                 float const x = (values[i]+addVal) / deltaVal;
                 Color c;
 
-                switch(palette)
-                {
-                    case 0:
-                        c= colorMapEther.getColor(x);
-                        break;
-                    case 1:
-                        c= colorMapSpace.getColor(x);
-                        break;
-                    case 2:
-                        c= colorMapMalachite.getColor(x);
-                        break;
-                    case 3:
-                        c= colorMapSeismic.getColor(x);
-                        break;
-                    case 4:
-                        c= colorMapMorningGlory.getColor(x);
-                        break;
-                    default:
-                        c= colorMapEther.getColor(x);
-                        break;
-                }
+                auto const& paletteColors = getArtisticPalette(palette);
+                float scaledX = x * (paletteColors.size() - 1);
+                int idx1 = (int)std::floor(scaledX);
+                int idx2 = (int)std::ceil(scaledX);
+                float t = scaledX - idx1;
+                idx1 = std::max(0, std::min(idx1, (int)paletteColors.size() - 1));
+                idx2 = std::max(0, std::min(idx2, (int)paletteColors.size() - 1));
+                
+                glm::vec4 c1 = paletteColors[idx1];
+                glm::vec4 c2 = paletteColors[idx2];
+                glm::vec4 interpolatedColor = c1 * (1.0f - t) + c2 * t;
+
+                c.r = interpolatedColor.r;
+                c.g = interpolatedColor.g;
+                c.b = interpolatedColor.b;
 
                 r= (uint8_t)(c.r*255.0);
                 g= (uint8_t)(c.g*255.0);
