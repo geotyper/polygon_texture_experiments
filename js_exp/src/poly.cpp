@@ -354,12 +354,48 @@ static void subdividePolygonCentroidRecursive(const std::vector<glm::vec2>& poly
     }
 }
 
-static void subdividePolygonSkeletonRecursive(const std::vector<glm::vec2>& poly, int currentDepth, int maxDepth, std::vector<std::vector<glm::vec2>>& outputList) {
+static std::vector<glm::vec2> cleanPolygon(const std::vector<glm::vec2>& poly) {
+    std::vector<glm::vec2> cleaned;
     int n = poly.size();
-    int nUnique = n;
-    if (n >= 2 && glm::distance(poly.front(), poly.back()) < 1e-4f) {
-        nUnique = n - 1;
+    if (n < 3) return poly;
+    
+    // Remove consecutive duplicate vertices
+    for (int i = 0; i < n; ++i) {
+        glm::vec2 p = poly[i];
+        if (cleaned.empty() || glm::distance(cleaned.back(), p) > 1e-3f) {
+            cleaned.push_back(p);
+        }
     }
+    
+    // Check if last and first are duplicate
+    while (cleaned.size() >= 3 && glm::distance(cleaned.front(), cleaned.back()) < 1e-3f) {
+        cleaned.pop_back();
+    }
+    
+    // Remove collinear vertices
+    if (cleaned.size() < 3) return cleaned;
+    std::vector<glm::vec2> finalPoly;
+    int m = cleaned.size();
+    for (int i = 0; i < m; ++i) {
+        glm::vec2 p1 = cleaned[i];
+        glm::vec2 p2 = cleaned[(i + 1) % m];
+        glm::vec2 p3 = cleaned[(i + 2) % m];
+        
+        // Compute cross product of (p2 - p1) and (p3 - p2)
+        float cross = (p2.x - p1.x) * (p3.y - p2.y) - (p2.y - p1.y) * (p3.x - p2.x);
+        if (std::abs(cross) > 1e-3f) {
+            finalPoly.push_back(p2);
+        }
+    }
+    if (finalPoly.size() < 3) {
+        return cleaned;
+    }
+    return finalPoly;
+}
+
+static void subdividePolygonSkeletonRecursive(const std::vector<glm::vec2>& poly, int currentDepth, int maxDepth, std::vector<std::vector<glm::vec2>>& outputList) {
+    std::vector<glm::vec2> cleanPoly = cleanPolygon(poly);
+    int nUnique = cleanPoly.size();
 
     if (nUnique < 3) {
         outputList.push_back(poly);
@@ -374,10 +410,16 @@ static void subdividePolygonSkeletonRecursive(const std::vector<glm::vec2>& poly
     // Convert to CGAL Polygon_2
     Polygon_2 cgalPoly;
     for (int i = 0; i < nUnique; ++i) {
-        cgalPoly.push_back(K::Point_2(poly[i].x, poly[i].y));
+        cgalPoly.push_back(K::Point_2(cleanPoly[i].x, cleanPoly[i].y));
     }
 
     if (!cgalPoly.is_simple()) {
+        subdividePolygonCentroidRecursive(poly, currentDepth, maxDepth, outputList);
+        return;
+    }
+
+    double area = std::abs(CGAL::to_double(cgalPoly.area()));
+    if (area < 25.0) {
         subdividePolygonCentroidRecursive(poly, currentDepth, maxDepth, outputList);
         return;
     }
@@ -388,30 +430,35 @@ static void subdividePolygonSkeletonRecursive(const std::vector<glm::vec2>& poly
 
     try {
         SsPtr ss = CGAL::create_interior_straight_skeleton_2(cgalPoly);
-        if (!ss) {
-            subdividePolygonCentroidRecursive(poly, currentDepth, maxDepth, outputList);
-            return;
-        }
-
-        if (ss->size_of_faces() == 0) {
+        if (!ss || ss->size_of_faces() == 0) {
             subdividePolygonCentroidRecursive(poly, currentDepth, maxDepth, outputList);
             return;
         }
 
         for (auto fit = ss->faces_begin(); fit != ss->faces_end(); ++fit) {
-            std::vector<glm::vec2> subPoly;
             auto h = fit->halfedge();
+            std::vector<glm::vec2> subPoly;
             auto curr = h;
+            bool validLoop = true;
+            int vertexCount = 0;
+
             do {
                 auto p = curr->vertex()->point();
                 subPoly.push_back(glm::vec2(CGAL::to_double(p.x()), CGAL::to_double(p.y())));
                 curr = curr->next();
+                vertexCount++;
+
+                if (vertexCount > 1000) {
+                    validLoop = false;
+                    break;
+                }
             } while (curr != h);
 
-            if (!subPoly.empty()) {
-                subPoly.push_back(subPoly.front()); // Close the loop
+            if (!validLoop || subPoly.size() < 3) {
+                continue;
             }
 
+            subPoly.push_back(subPoly.front()); // Close the loop
             subdividePolygonSkeletonRecursive(subPoly, currentDepth + 1, maxDepth, outputList);
         }
     } catch (...) {
