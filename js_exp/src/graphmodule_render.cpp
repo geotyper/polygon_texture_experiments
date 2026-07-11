@@ -234,7 +234,7 @@ void GraphModule::draw_ImGui() {
             simRunParam.drawTriangulatePolygons=true;
         }
 
-        const char* palettes[] = { "Ether", "Space", "Malachite", "Seismic", "Morning Glory", "Neo-Art", "Noir", "Primitivism", "Cyberpunk", "Pastel/Dreams", "Bauhaus" };
+        const char* palettes[] = { "Kintsugi (Ink & Gold)", "Blueprint (Cobalt)", "Malachite & Rust", "Crimson & Steel", "Sage & Sand", "Bauhaus", "Noir", "Ochre & Charcoal", "Cyberpunk Minimal", "Muted Rose & Slate", "Ash & Amber" };
         int currentPalette = (int)solver.palette;
         if (ImGui::Combo("Palette Selection", &currentPalette, palettes, IM_ARRAYSIZE(palettes)))
         {
