@@ -250,12 +250,6 @@ void GraphModule::draw_ImGui() {
             simRunParam.triangulatePolygons = true;
         }
         ImGui::SliderFloat("General Zoom", &simDynParam.generalZoom, 0.2f, 3.0f, "%.2f");
-        ImGui::SliderFloat("Texture UV Zoom", &simDynParam.textureUVZoom, 0.1f, 10.0f, "%.2f");
-        ImGui::Checkbox("Auto-Regen Textures on Triangulate", &simDynParam.autoRegenerateTextures);
-        if (ImGui::Button("Regenerate All Textures"))
-        {
-            solver.fillAllTextures();
-        }
 
         const char* bgPresets[] = { "Original Dark Blue", "Dark Gray", "Cinematic Black", "Charcoal", "Cream / Sepia", "Pure White", "Custom Color" };
         static int selectedBg = 0; // Default: Original Dark Blue
@@ -403,6 +397,28 @@ void GraphModule::draw_ImGui() {
 
 
     ImGui::Begin("Texture preview");
+
+    ImGui::SliderFloat("Texture UV Zoom", &simDynParam.textureUVZoom, 0.001f, 5.0f, "%.4f");
+    ImGui::SliderFloat("Texture UV Rotation", &simDynParam.textureUVAngle, 0.0f, 360.0f, "%.1f");
+    ImGui::Checkbox("Auto-Regen on Triangulate", &simDynParam.autoRegenerateTextures);
+
+    int minDepth = (int)solver.settings.function_depth.min;
+    int maxDepth = (int)solver.settings.function_depth.max;
+    ImGui::SetNextItemWidth(100.0f);
+    if (ImGui::SliderInt("Min Depth", &minDepth, 1, 5)) {
+        solver.settings.function_depth.min = minDepth;
+    }
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(100.0f);
+    if (ImGui::SliderInt("Max Depth", &maxDepth, 1, 5)) {
+        solver.settings.function_depth.max = maxDepth;
+    }
+
+    if (ImGui::Button("Regenerate All Textures"))
+    {
+        solver.fillAllTextures();
+    }
+    ImGui::Separator();
 
     int texSize=solver.function_image.height/6;
     int textureIndex=0;
@@ -627,6 +643,11 @@ void GraphModule::draw_PolygonsUV(vector<vector<VertexPosUV>>& triangulatePolygo
               if (zoomLoc != -1) glUniform1f(zoomLoc, simDynParam.generalZoom);
               GLint uvZoomLoc = glGetUniformLocation(graphicProcessor.polygonGA.prog, "uUVZoom");
               if (uvZoomLoc != -1) glUniform1f(uvZoomLoc, simDynParam.textureUVZoom);
+              GLint uvAngleLoc = glGetUniformLocation(graphicProcessor.polygonGA.prog, "uUVAngle");
+              if (uvAngleLoc != -1) {
+                  float angleRad = simDynParam.textureUVAngle * (3.14159265f / 180.0f);
+                  glUniform1f(uvAngleLoc, angleRad);
+              }
               bool isOffset = (&triangulatePolygons_in == &solver.polyLib.arr.triangles_draw_vertexOffsetUV);
               for(int i=0+simRunParam.minusSmallestPolygons; i<triangulatePolygons_in.size()-simRunParam.minusBiggestPolygons;i++)
               {

@@ -249,6 +249,7 @@ struct SimDynamicParameters{
     float generalZoom = 1.0f;
     float textureUVZoom = 1.0f;
     bool autoRegenerateTextures = false;
+    float textureUVAngle = 0.0f;
     int subdivisionDepth = 0;
     int subdivisionMode = 0; // 0: Centroid, 1: Skeleton
     bool enablePolygonMerging = false;
