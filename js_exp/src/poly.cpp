@@ -474,6 +474,15 @@ static void subdividePolygonRecursive(const std::vector<glm::vec2>& poly, int cu
     }
 }
 
+static bool isPolygonValid(const std::vector<glm::vec2>& poly) {
+    for (const auto& pt : poly) {
+        if (std::isnan(pt.x) || std::isinf(pt.x) || std::isnan(pt.y) || std::isinf(pt.y)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static std::vector<glm::vec2> smoothPolygon(const std::vector<glm::vec2>& polygon, float tension, float pointsPerUnitLength) {
     int n = polygon.size();
     int nUnique = n;
@@ -483,6 +492,12 @@ static std::vector<glm::vec2> smoothPolygon(const std::vector<glm::vec2>& polygo
 
     if (nUnique < 3) return polygon;
 
+    // Safety checks for parameters
+    if (std::isnan(tension) || std::isinf(tension)) tension = 0.5f;
+    if (std::isnan(pointsPerUnitLength) || std::isinf(pointsPerUnitLength) || pointsPerUnitLength <= 0.0f) {
+        pointsPerUnitLength = 0.2f;
+    }
+
     std::vector<glm::vec2> smoothed;
 
     for (int i = 0; i < nUnique; ++i) {
@@ -491,9 +506,22 @@ static std::vector<glm::vec2> smoothPolygon(const std::vector<glm::vec2>& polygo
         glm::vec2 p2 = polygon[(i + 1) % nUnique];
         glm::vec2 p3 = polygon[(i + 2) % nUnique];
 
+        // Safety check for vertices
+        if (std::isnan(p0.x) || std::isinf(p0.x) || std::isnan(p0.y) || std::isinf(p0.y) ||
+            std::isnan(p1.x) || std::isinf(p1.x) || std::isnan(p1.y) || std::isinf(p1.y) ||
+            std::isnan(p2.x) || std::isinf(p2.x) || std::isnan(p2.y) || std::isinf(p2.y) ||
+            std::isnan(p3.x) || std::isinf(p3.x) || std::isnan(p3.y) || std::isinf(p3.y)) {
+            continue;
+        }
+
         float segmentLength = glm::distance(p1, p2);
+        if (std::isnan(segmentLength) || std::isinf(segmentLength)) {
+            segmentLength = 0.0f;
+        }
+
         int subdivisions = (int)ceil(segmentLength * pointsPerUnitLength);
         if (subdivisions < 1) subdivisions = 1;
+        if (subdivisions > 100) subdivisions = 100; // Cap subdivisions to prevent OOM/CPU hangs
 
         for (int s = 0; s < subdivisions; ++s) {
             float t = (float)s / subdivisions;
@@ -564,7 +592,7 @@ vector<vector<glm::vec2>> PolyLib::testForPolygons(std::vector<PointData> &point
                 ++curr;
             } while (curr != ccb);
 
-            if (!cell.empty())
+            if (!cell.empty() && isPolygonValid(cell))
             {
                 cell.push_back(cell[0]); // close the loop
                 result.push_back(cell);
