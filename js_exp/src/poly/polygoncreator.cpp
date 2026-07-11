@@ -312,6 +312,11 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                         }
                         calcPolygon(parentPolyInfo, parentVertices);
 
+                        float maxDim = std::max(parentPolyInfo.width, parentPolyInfo.height);
+                        float denom = maxDim > 0.0f ? maxDim : 1.0f;
+                        float centerX = parentPolyInfo.minboxCoord.x + parentPolyInfo.width * 0.5f;
+                        float centerY = parentPolyInfo.minboxCoord.y + parentPolyInfo.height * 0.5f;
+
                         for (auto iter = polys.begin(); iter != polys.end(); iter++) {
                             iter->SetOrientation(TPPLOrientation::TPPL_ORIENTATION_CW);
 
@@ -334,15 +339,8 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
 
                                 VertexPosUV tempPosUV;
                                 tempPosUV.pos = glm::vec2(iter->GetPoint(i).x, iter->GetPoint(i).y);
-                                tempPosUV.uv = tempPosUV.pos - parentPolyInfo.minboxCoord + parentPolyInfo.center;
-                                if (parentPolyInfo.width > 0)
-                                    tempPosUV.uv.x /= 1.5 * parentPolyInfo.width;
-                                else
-                                    tempPosUV.uv.x = 0;
-                                if (parentPolyInfo.height > 0)
-                                    tempPosUV.uv.y /= 1.5 * parentPolyInfo.height;
-                                else
-                                    tempPosUV.uv.y = 0;
+                                tempPosUV.uv.x = 0.5f + (tempPosUV.pos.x - centerX) / denom;
+                                tempPosUV.uv.y = 0.5f + (tempPosUV.pos.y - centerY) / denom;
                                 tempVertexUV.push_back(tempPosUV);
                             }
 
@@ -435,6 +433,11 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                         PolygonInfo parentPolyInfo;
                         calcPolygon(parentPolyInfo, polygonList_in[ip]);
 
+                        float maxDim = std::max(parentPolyInfo.width, parentPolyInfo.height);
+                        float denom = maxDim > 0.0f ? maxDim : 1.0f;
+                        float centerX = parentPolyInfo.minboxCoord.x + parentPolyInfo.width * 0.5f;
+                        float centerY = parentPolyInfo.minboxCoord.y + parentPolyInfo.height * 0.5f;
+
                         for (auto iter = polys.begin(); iter != polys.end(); iter++) {
                             iter->SetOrientation(TPPLOrientation::TPPL_ORIENTATION_CW);
 
@@ -457,15 +460,8 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
 
                                 VertexPosUV tempPosUV;
                                 tempPosUV.pos = glm::vec2(iter->GetPoint(i).x, iter->GetPoint(i).y);
-                                tempPosUV.uv = tempPosUV.pos - parentPolyInfo.minboxCoord + parentPolyInfo.center;
-                                if (parentPolyInfo.width > 0)
-                                    tempPosUV.uv.x /= 1.5 * parentPolyInfo.width;
-                                else
-                                    tempPosUV.uv.x = 0;
-                                if (parentPolyInfo.height > 0)
-                                    tempPosUV.uv.y /= 1.5 * parentPolyInfo.height;
-                                else
-                                    tempPosUV.uv.y = 0;
+                                tempPosUV.uv.x = 0.5f + (tempPosUV.pos.x - centerX) / denom;
+                                tempPosUV.uv.y = 0.5f + (tempPosUV.pos.y - centerY) / denom;
                                 tempVertexUV.push_back(tempPosUV);
                             }
 
