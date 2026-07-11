@@ -8,6 +8,7 @@ layout(location = 1) in vec2 a_texCoord;
 out vec2 v_texCoord;
 
 uniform float uZoom;
+uniform float uUVZoom;
 
 void main() {
 
@@ -19,5 +20,5 @@ vec2 posWorld=vec2(2.0*(scaledPos.x)/2000.0-1.0,2.0*(scaledPos.y)/2000.0-1.0);
 gl_Position=vec4(posWorld.x, posWorld.y, 0.2, 1.0);
 //  gl_Position=vec4(intPosition.xy, 0.1,1.0);
 
-  v_texCoord = a_texCoord;
+  v_texCoord = (a_texCoord - vec2(0.5, 0.5)) * uUVZoom + vec2(0.5, 0.5);
 }

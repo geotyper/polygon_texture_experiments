@@ -40,6 +40,7 @@ public:
     Image_statistics image_statistics;
 
     bool generate_image();
+    void fillAllTextures();
 
     Image_statistics stat;
 

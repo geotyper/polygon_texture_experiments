@@ -76,6 +76,7 @@ void Solver::texturesInit()
         textureList.push_back(tempTexture);
         textureIndexList.push_back(tempTexture.id);
     }
+    fillAllTextures();
 }
 
 
@@ -114,6 +115,21 @@ bool Solver::generate_image()
 
     return true;
 
+}
+
+
+void Solver::fillAllTextures()
+{
+    GLsizei const w = static_cast<GLsizei>(function_image.width);
+    GLsizei const h = static_cast<GLsizei>(function_image.height);
+    for (size_t i = 0; i < textureIndexList.size(); ++i)
+    {
+        ga.generate_texture(colors, stat, (unsigned int)randomFloat(0, 100000), palette);
+        glBindTexture(GL_TEXTURE_2D, textureIndexList[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, colors.data());
+    }
+    glBindTexture(GL_TEXTURE_2D, 0u);
+    CHECKGLERROR();
 }
 
 

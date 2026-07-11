@@ -250,6 +250,12 @@ void GraphModule::draw_ImGui() {
             simRunParam.triangulatePolygons = true;
         }
         ImGui::SliderFloat("General Zoom", &simDynParam.generalZoom, 0.2f, 3.0f, "%.2f");
+        ImGui::SliderFloat("Texture UV Zoom", &simDynParam.textureUVZoom, 0.1f, 10.0f, "%.2f");
+        ImGui::Checkbox("Auto-Regen Textures on Triangulate", &simDynParam.autoRegenerateTextures);
+        if (ImGui::Button("Regenerate All Textures"))
+        {
+            solver.fillAllTextures();
+        }
 
         const char* bgPresets[] = { "Original Dark Blue", "Dark Gray", "Cinematic Black", "Charcoal", "Cream / Sepia", "Pure White", "Custom Color" };
         static int selectedBg = 0; // Default: Original Dark Blue
@@ -619,6 +625,8 @@ void GraphModule::draw_PolygonsUV(vector<vector<VertexPosUV>>& triangulatePolygo
         {
               GLint zoomLoc = glGetUniformLocation(graphicProcessor.polygonGA.prog, "uZoom");
               if (zoomLoc != -1) glUniform1f(zoomLoc, simDynParam.generalZoom);
+              GLint uvZoomLoc = glGetUniformLocation(graphicProcessor.polygonGA.prog, "uUVZoom");
+              if (uvZoomLoc != -1) glUniform1f(uvZoomLoc, simDynParam.textureUVZoom);
               bool isOffset = (&triangulatePolygons_in == &solver.polyLib.arr.triangles_draw_vertexOffsetUV);
               for(int i=0+simRunParam.minusSmallestPolygons; i<triangulatePolygons_in.size()-simRunParam.minusBiggestPolygons;i++)
               {
@@ -634,12 +642,12 @@ void GraphModule::draw_PolygonsUV(vector<vector<VertexPosUV>>& triangulatePolygo
 
                   glBindVertexArray(graphicProcessor.polygonGA.vao);
                   glActiveTexture(GL_TEXTURE0);
-                  int textureIndex=i%63;
+                  int textureIndex = i % solver.textureIndexList.size();
                   glBindTexture(GL_TEXTURE_2D,solver.textureIndexList[textureIndex]);
                   // Set the sampler texture unit to 0
                   glUniform1i(graphicProcessor.polygonGA.uniform.ubo, 0);
 
-                 // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                  // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
                   glDrawArrays(GL_TRIANGLES, 0, triangulatePolygons_in[ip].size());
                   glBindVertexArray(0);
