@@ -305,6 +305,13 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                     }
 
                     if (res == 1) {
+                        PolygonInfo parentPolyInfo;
+                        std::vector<glm::vec2> parentVertices;
+                        for (size_t i = 0; i < node->Contour.size(); ++i) {
+                            parentVertices.push_back(glm::vec2(node->Contour[i].X, node->Contour[i].Y));
+                        }
+                        calcPolygon(parentPolyInfo, parentVertices);
+
                         for (auto iter = polys.begin(); iter != polys.end(); iter++) {
                             iter->SetOrientation(TPPLOrientation::TPPL_ORIENTATION_CW);
 
@@ -312,13 +319,8 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                             std::vector<unsigned int> tempIndex;
                             std::vector<VertexPosUV> tempVertexUV;
 
-                            std::vector<glm::vec2> simpleVertices;
-                            for (int i = 0; i < iter->GetNumPoints(); i++) {
-                                simpleVertices.push_back(glm::vec2(iter->GetPoint(i).x, iter->GetPoint(i).y));
-                            }
-
                             PolygonData tempPolygon;
-                            calcPolygon(tempPolygon.polyInfo, simpleVertices);
+                            tempPolygon.polyInfo = parentPolyInfo;
 
                             Path subj;
                             for (int i = 0; i < iter->GetNumPoints(); i++) {
@@ -332,13 +334,13 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
 
                                 VertexPosUV tempPosUV;
                                 tempPosUV.pos = glm::vec2(iter->GetPoint(i).x, iter->GetPoint(i).y);
-                                tempPosUV.uv = tempPosUV.pos - tempPolygon.polyInfo.minboxCoord + tempPolygon.polyInfo.center;
-                                if (tempPolygon.polyInfo.width > 0)
-                                    tempPosUV.uv.x /= 1.5 * tempPolygon.polyInfo.width;
+                                tempPosUV.uv = tempPosUV.pos - parentPolyInfo.minboxCoord + parentPolyInfo.center;
+                                if (parentPolyInfo.width > 0)
+                                    tempPosUV.uv.x /= 1.5 * parentPolyInfo.width;
                                 else
                                     tempPosUV.uv.x = 0;
-                                if (tempPolygon.polyInfo.height > 0)
-                                    tempPosUV.uv.y /= 1.5 * tempPolygon.polyInfo.height;
+                                if (parentPolyInfo.height > 0)
+                                    tempPosUV.uv.y /= 1.5 * parentPolyInfo.height;
                                 else
                                     tempPosUV.uv.y = 0;
                                 tempVertexUV.push_back(tempPosUV);
@@ -430,6 +432,9 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                     }
 
                     if (res == 1) {
+                        PolygonInfo parentPolyInfo;
+                        calcPolygon(parentPolyInfo, polygonList_in[ip]);
+
                         for (auto iter = polys.begin(); iter != polys.end(); iter++) {
                             iter->SetOrientation(TPPLOrientation::TPPL_ORIENTATION_CW);
 
@@ -437,13 +442,8 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                             std::vector<unsigned int> tempIndex;
                             std::vector<VertexPosUV> tempVertexUV;
 
-                            std::vector<glm::vec2> simpleVertices;
-                            for (int i = 0; i < iter->GetNumPoints(); i++) {
-                                simpleVertices.push_back(glm::vec2(iter->GetPoint(i).x, iter->GetPoint(i).y));
-                            }
-
                             PolygonData tempPolygon;
-                            calcPolygon(tempPolygon.polyInfo, simpleVertices);
+                            tempPolygon.polyInfo = parentPolyInfo;
 
                             Path subj;
                             for (int i = 0; i < iter->GetNumPoints(); i++) {
@@ -457,13 +457,13 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
 
                                 VertexPosUV tempPosUV;
                                 tempPosUV.pos = glm::vec2(iter->GetPoint(i).x, iter->GetPoint(i).y);
-                                tempPosUV.uv = tempPosUV.pos - tempPolygon.polyInfo.minboxCoord + tempPolygon.polyInfo.center;
-                                if (tempPolygon.polyInfo.width > 0)
-                                    tempPosUV.uv.x /= 1.5 * tempPolygon.polyInfo.width;
+                                tempPosUV.uv = tempPosUV.pos - parentPolyInfo.minboxCoord + parentPolyInfo.center;
+                                if (parentPolyInfo.width > 0)
+                                    tempPosUV.uv.x /= 1.5 * parentPolyInfo.width;
                                 else
                                     tempPosUV.uv.x = 0;
-                                if (tempPolygon.polyInfo.height > 0)
-                                    tempPosUV.uv.y /= 1.5 * tempPolygon.polyInfo.height;
+                                if (parentPolyInfo.height > 0)
+                                    tempPosUV.uv.y /= 1.5 * parentPolyInfo.height;
                                 else
                                     tempPosUV.uv.y = 0;
                                 tempVertexUV.push_back(tempPosUV);
