@@ -245,6 +245,10 @@ void GraphModule::draw_ImGui() {
         {
             simRunParam.triangulatePolygons = true;
         }
+        if (ImGui::Checkbox("Remove Overlapping Polygons", &simDynParam.removeOverlappingPolygons))
+        {
+            simRunParam.triangulatePolygons = true;
+        }
 
         const char* bgPresets[] = { "Original Dark Blue", "Dark Gray", "Cinematic Black", "Charcoal", "Cream / Sepia", "Pure White", "Custom Color" };
         static int selectedBg = 0; // Default: Original Dark Blue

@@ -70,7 +70,7 @@ public:
     vector<vector<glm::vec2> > offsetPolygons(float offest);
 
     //vector<vector<TrianglesDrawStruct> > TriangulationPolygon(vector<vector<glm::vec2> > &polygonList_in);;
-    vector<vector<TrianglesDrawStruct> > TriangulationPolygon(vector<vector<glm::vec2> > &polygonList_in, bool offset, int palette, bool mergePolygons);
+    vector<vector<TrianglesDrawStruct> > TriangulationPolygon(vector<vector<glm::vec2> > &polygonList_in, bool offset, int palette, bool mergePolygons, bool removeOverlappingPolygons);
     void Triangulation(vector<vector<glm::vec2> > &polygonList_in, int palette);
     void RecolorPolygons(int palette);
 };

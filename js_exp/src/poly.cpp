@@ -678,14 +678,14 @@ vector<vector<glm::vec2>> PolyLib::offsetPolygons(float offset)
 void PolyLib::Triangulation(vector<vector<glm::vec2>>& polygonList_in, int palette)
 {
      triangles_draw_vertex.clear();
-     triangles_draw_vertex=arr.triangulatePolygons(polygonList_in,32, false,palette, false);
+     triangles_draw_vertex=arr.triangulatePolygons(polygonList_in,32, false,palette, false, false);
      triangles_draw_index=arr.triangles_draw_index;
 }
 
-vector<vector<TrianglesDrawStruct>> PolyLib::TriangulationPolygon(vector<vector<glm::vec2>>& polygonList_in, bool offset, int palette, bool mergePolygons)
+vector<vector<TrianglesDrawStruct>> PolyLib::TriangulationPolygon(vector<vector<glm::vec2>>& polygonList_in, bool offset, int palette, bool mergePolygons, bool removeOverlappingPolygons)
 {
      vector<vector<TrianglesDrawStruct>> result;
-     result=arr.triangulatePolygons(polygonList_in,32, offset,palette, mergePolygons);
+     result=arr.triangulatePolygons(polygonList_in,32, offset,palette, mergePolygons, removeOverlappingPolygons);
      return result;
 }
 

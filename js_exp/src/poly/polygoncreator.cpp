@@ -5,6 +5,8 @@
 
 #include <iostream>
 #include <math.h>
+#include <numeric>
+#include <algorithm>
 
 #define EPSILON 1E-5
 
@@ -114,9 +116,102 @@ const std::vector<std::vector<glm::vec2> > ArrangementBuilder::offestPolygons(fl
 
 }
 
-vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vector<vector<glm::vec2>>& polygonList_in,int num_colors, bool offset, int palette, bool mergePolygons)
+vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vector<vector<glm::vec2>>& polygonList_in,int num_colors, bool offset, int palette, bool mergePolygons, bool removeOverlappingPolygons)
 {
-    std::cout << "[Triangulate] triangulatePolygons called with " << polygonList_in.size() << " polygons (offset=" << (offset ? "true" : "false") << ", merge=" << (mergePolygons ? "true" : "false") << ")." << std::endl;
+    std::cout << "[Triangulate] triangulatePolygons called with " << polygonList_in.size() << " polygons (offset=" << (offset ? "true" : "false") << ", merge=" << (mergePolygons ? "true" : "false") << ", removeOverlap=" << (removeOverlappingPolygons ? "true" : "false") << ")." << std::endl;
+
+    if (removeOverlappingPolygons) {
+        struct PolyInfo {
+            int originalIndex;
+            double area;
+            float minX, maxX, minY, maxY;
+            bool active;
+        };
+
+        std::vector<PolyInfo> infos(polygonList_in.size());
+        for (size_t i = 0; i < polygonList_in.size(); ++i) {
+            infos[i].originalIndex = i;
+            infos[i].active = true;
+
+            if (polygonList_in[i].size() < 3) {
+                infos[i].active = false;
+                continue;
+            }
+
+            Path path;
+            float minX = polygonList_in[i][0].x;
+            float maxX = minX;
+            float minY = polygonList_in[i][0].y;
+            float maxY = minY;
+
+            for (auto pt : polygonList_in[i]) {
+                path << IntPoint(pt.x, pt.y);
+                if (pt.x < minX) minX = pt.x;
+                if (pt.x > maxX) maxX = pt.x;
+                if (pt.y < minY) minY = pt.y;
+                if (pt.y > maxY) maxY = pt.y;
+            }
+
+            infos[i].area = abs(Area(path));
+            infos[i].minX = minX;
+            infos[i].maxX = maxX;
+            infos[i].minY = minY;
+            infos[i].maxY = maxY;
+        }
+
+        std::vector<int> sortedIndices(infos.size());
+        std::iota(sortedIndices.begin(), sortedIndices.end(), 0);
+        std::sort(sortedIndices.begin(), sortedIndices.end(), [&](int a, int b) {
+            return infos[a].area > infos[b].area;
+        });
+
+        for (size_t i = 0; i < sortedIndices.size(); ++i) {
+            int idxA = sortedIndices[i];
+            if (!infos[idxA].active) continue;
+
+            for (size_t j = i + 1; j < sortedIndices.size(); ++j) {
+                int idxB = sortedIndices[j];
+                if (!infos[idxB].active) continue;
+
+                // Bounding box check
+                if (infos[idxA].maxX < infos[idxB].minX || infos[idxB].maxX < infos[idxA].minX ||
+                    infos[idxA].maxY < infos[idxB].minY || infos[idxB].maxY < infos[idxA].minY) {
+                    continue; // No overlap possible
+                }
+
+                // Clipper intersection check
+                Clipper c;
+                Path pathA, pathB;
+                for (auto pt : polygonList_in[idxA]) pathA << IntPoint(pt.x, pt.y);
+                for (auto pt : polygonList_in[idxB]) pathB << IntPoint(pt.x, pt.y);
+
+                c.AddPath(pathA, ptSubject, true);
+                c.AddPath(pathB, ptClip, true);
+
+                Paths inter;
+                c.Execute(ctIntersection, inter);
+
+                double interArea = 0;
+                for (const auto& p : inter) {
+                    interArea += abs(Area(p));
+                }
+
+                // If they overlap significantly (e.g. intersection area > 10% of the smaller polygon's area, or > 5.0)
+                if (interArea > 5.0 && interArea > 0.05 * infos[idxB].area) {
+                    infos[idxB].active = false; // Deactivate smaller polygon
+                }
+            }
+        }
+
+        std::vector<std::vector<glm::vec2>> filtered;
+        for (size_t i = 0; i < polygonList_in.size(); ++i) {
+            if (infos[i].active) {
+                filtered.push_back(polygonList_in[i]);
+            }
+        }
+        polygonList_in = filtered;
+    }
+
     int counter=0;
     triangles_draw_vertex.clear();
     triangles_draw_index.clear();

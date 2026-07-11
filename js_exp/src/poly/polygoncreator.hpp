@@ -27,7 +27,7 @@ public:
     //const PolygonList* getPolygons(const PointList& points);
     const std::vector<std::vector<glm::vec2>> getPolygonsVector(std::vector<PointData> &pointList, std::vector<Constraint> &constraintList);
     const std::vector<std::vector<glm::vec2>> offestPolygons(float offest);
-    vector<vector<TrianglesDrawStruct> > triangulatePolygons(vector<vector<glm::vec2> > &polygonList_in, int num_colors, bool offset, int palette, bool mergePolygons);
+    vector<vector<TrianglesDrawStruct> > triangulatePolygons(vector<vector<glm::vec2> > &polygonList_in, int num_colors, bool offset, int palette, bool mergePolygons, bool removeOverlappingPolygons);
     vector<vector<TrianglesDrawStruct> > triangulatePolygonsVoronoi(vector<vector<glm::vec2> > &polygonList_in, int num_colors);
 
     float minPolygonArea = 18.0f;

@@ -776,8 +776,8 @@ bool GraphModule::Step()
     if(simRunParam.triangulatePolygons){
         simRunParam.triangulatePolygons=false;
         //solver.polyLib.Triangulation(polygonsList);
-        solver.polyLib.triangles_draw_vertex=solver.polyLib.TriangulationPolygon(polygonsList, false, solver.palette, simDynParam.enablePolygonMerging);
-        solver.polyLib.trianglesOffset_draw_vertex=solver.polyLib.TriangulationPolygon(polygonsListOffset, true, solver.palette, simDynParam.enablePolygonMerging);
+        solver.polyLib.triangles_draw_vertex=solver.polyLib.TriangulationPolygon(polygonsList, false, solver.palette, simDynParam.enablePolygonMerging, simDynParam.removeOverlappingPolygons);
+        solver.polyLib.trianglesOffset_draw_vertex=solver.polyLib.TriangulationPolygon(polygonsListOffset, true, solver.palette, simDynParam.enablePolygonMerging, simDynParam.removeOverlappingPolygons);
 
     }
 
@@ -907,8 +907,8 @@ bool GraphModule::Step()
 
         polygonsListOffset=solver.polyLib.offsetPolygons(simRunParam.polygonOffest );
 
-        solver.polyLib.triangles_draw_vertex=solver.polyLib.TriangulationPolygon(polygonsList, false, solver.palette, simDynParam.enablePolygonMerging);
-        solver.polyLib.trianglesOffset_draw_vertex=solver.polyLib.TriangulationPolygon(polygonsListOffset, true, solver.palette, simDynParam.enablePolygonMerging);
+        solver.polyLib.triangles_draw_vertex=solver.polyLib.TriangulationPolygon(polygonsList, false, solver.palette, simDynParam.enablePolygonMerging, simDynParam.removeOverlappingPolygons);
+        solver.polyLib.trianglesOffset_draw_vertex=solver.polyLib.TriangulationPolygon(polygonsListOffset, true, solver.palette, simDynParam.enablePolygonMerging, simDynParam.removeOverlappingPolygons);
     }
 
     if(simRunParam.drawConstraints)
