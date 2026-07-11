@@ -1,0 +1,7 @@
+# Build directories
+build-*/
+CMakeLists.txt.user
+
+# OS-specific files
+.DS_Store
+Thumbs.db

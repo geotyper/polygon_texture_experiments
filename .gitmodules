@@ -1,0 +1,6 @@
+[submodule "ofxColorTheory"]
+	path = ofxColorTheory
+	url = https://github.com/kasparsj/ofxColorTheory
+[submodule "colormap-shaders"]
+	path = colormap-shaders
+	url = https://github.com/kbinani/colormap-shaders
