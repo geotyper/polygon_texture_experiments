@@ -78,6 +78,7 @@ GraphModule::GraphModule()
 
     //--------------------Start Texture init-------------
     solver.texturesInit();
+    /*
     int numTex=64;
     bool rungenerator=true;
     int counterTex=0;
@@ -88,6 +89,7 @@ GraphModule::GraphModule()
        if(numTex<counterTex)
            rungenerator=false;
     }
+    */
     //--------------------Texture init-------------
 
 

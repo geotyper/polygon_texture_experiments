@@ -7,6 +7,9 @@
 #include <math.h>
 #include <numeric>
 #include <algorithm>
+#include <fstream>
+#include <map>
+#include <cstdlib>
 
 #define EPSILON 1E-5
 
@@ -224,6 +227,7 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
        triangles_draw_vertexOffsetUV.clear();
        polygonColorIndicesOffset.clear();
        trianglesOffset_parent_polygon_id.clear();
+       polygon_texture_id_offset.clear();
     }
     else
     {
@@ -232,9 +236,23 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
        triangles_draw_vertexUV.clear();
        polygonColorIndices.clear();
        triangles_parent_polygon_id.clear();
+       polygon_texture_id.clear();
     }
 
     vector<glm::vec4> colorList = generateColorList(palette, num_colors);
+
+    // Assign a random (but stable per polygon) texture index from pool of 30 (5x6)
+    static const int TEX_POOL_SIZE = 30;
+    std::map<int, int> polyTexMap; // polygon index → texture pool index
+    auto getPolyTex = [&](int polyIdx) -> int {
+        auto it = polyTexMap.find(polyIdx);
+        if (it == polyTexMap.end()) {
+            int t = rand() % TEX_POOL_SIZE;
+            polyTexMap[polyIdx] = t;
+            return t;
+        }
+        return it->second;
+    };
 
     if (mergePolygons)
     {
@@ -314,9 +332,11 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                         }
                         calcPolygon(parentPolyInfo, parentVertices);
 
-                        float maxDim = std::max(parentPolyInfo.width, parentPolyInfo.height);
-                        float denom = maxDim > 0.0f ? maxDim : 1.0f;
-                        float centerX = parentPolyInfo.minboxCoord.x + parentPolyInfo.width * 0.5f;
+                        // World-space UV: fixed scale so all polygons show
+                        // the same texture density regardless of polygon size.
+                        // GL_REPEAT handles tiling on large polygons.
+                        static const float WORLD_UV_SCALE = 500.0f; // world units per full texture
+                        float centerX = parentPolyInfo.minboxCoord.x + parentPolyInfo.width  * 0.5f;
                         float centerY = parentPolyInfo.minboxCoord.y + parentPolyInfo.height * 0.5f;
 
                         for (auto iter = polys.begin(); iter != polys.end(); iter++) {
@@ -341,8 +361,8 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
 
                                 VertexPosUV tempPosUV;
                                 tempPosUV.pos = glm::vec2(iter->GetPoint(i).x, iter->GetPoint(i).y);
-                                tempPosUV.uv.x = 0.5f + (tempPosUV.pos.x - centerX) / denom;
-                                tempPosUV.uv.y = 0.5f + (tempPosUV.pos.y - centerY) / denom;
+                                tempPosUV.uv.x = (tempPosUV.pos.x - centerX) / WORLD_UV_SCALE;
+                                tempPosUV.uv.y = (tempPosUV.pos.y - centerY) / WORLD_UV_SCALE;
                                 tempVertexUV.push_back(tempPosUV);
                             }
 
@@ -357,12 +377,14 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                                 polygonDataOffset.push_back(tempPolygon);
                                 polygonColorIndicesOffset.push_back(cIdx);
                                 trianglesOffset_parent_polygon_id.push_back(cIdx);
+                                polygon_texture_id_offset.push_back(getPolyTex(cIdx));
                             } else {
                                 areaList.push_back({counter, abs(areaTri)});
                                 triangles_draw_vertexUV.push_back(tempVertexUV);
                                 polygonData.push_back(tempPolygon);
                                 polygonColorIndices.push_back(cIdx);
                                 triangles_parent_polygon_id.push_back(cIdx);
+                                polygon_texture_id.push_back(getPolyTex(cIdx));
                             }
                             counter++;
                         }
@@ -437,9 +459,10 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                         PolygonInfo parentPolyInfo;
                         calcPolygon(parentPolyInfo, polygonList_in[ip]);
 
-                        float maxDim = std::max(parentPolyInfo.width, parentPolyInfo.height);
-                        float denom = maxDim > 0.0f ? maxDim : 1.0f;
-                        float centerX = parentPolyInfo.minboxCoord.x + parentPolyInfo.width * 0.5f;
+                        // World-space UV: fixed scale so all polygons show
+                        // the same texture density regardless of polygon size.
+                        static const float WORLD_UV_SCALE = 500.0f; // world units per full texture
+                        float centerX = parentPolyInfo.minboxCoord.x + parentPolyInfo.width  * 0.5f;
                         float centerY = parentPolyInfo.minboxCoord.y + parentPolyInfo.height * 0.5f;
 
                         for (auto iter = polys.begin(); iter != polys.end(); iter++) {
@@ -464,8 +487,8 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
 
                                 VertexPosUV tempPosUV;
                                 tempPosUV.pos = glm::vec2(iter->GetPoint(i).x, iter->GetPoint(i).y);
-                                tempPosUV.uv.x = 0.5f + (tempPosUV.pos.x - centerX) / denom;
-                                tempPosUV.uv.y = 0.5f + (tempPosUV.pos.y - centerY) / denom;
+                                tempPosUV.uv.x = (tempPosUV.pos.x - centerX) / WORLD_UV_SCALE;
+                                tempPosUV.uv.y = (tempPosUV.pos.y - centerY) / WORLD_UV_SCALE;
                                 tempVertexUV.push_back(tempPosUV);
                             }
 
@@ -480,12 +503,14 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
                                 polygonDataOffset.push_back(tempPolygon);
                                 polygonColorIndicesOffset.push_back(rnd_color);
                                 trianglesOffset_parent_polygon_id.push_back(ip);
+                                polygon_texture_id_offset.push_back(getPolyTex(ip));
                             } else {
                                 areaList.push_back({counter, abs(areaTri)});
                                 triangles_draw_vertexUV.push_back(tempVertexUV);
                                 polygonData.push_back(tempPolygon);
                                 polygonColorIndices.push_back(rnd_color);
                                 triangles_parent_polygon_id.push_back(ip);
+                                polygon_texture_id.push_back(getPolyTex(ip));
                             }
                             counter++;
                         }

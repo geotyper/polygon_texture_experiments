@@ -52,6 +52,10 @@ public:
     vector<int> triangles_parent_polygon_id;
     vector<int> trianglesOffset_parent_polygon_id;
 
+    // Random texture index assigned per polygon shape (from texture pool)
+    vector<int> polygon_texture_id;
+    vector<int> polygon_texture_id_offset;
+
     vector<pair<int,float>> areaList;
     vector<pair<int,float>> areaListOffset;
 

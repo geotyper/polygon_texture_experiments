@@ -436,236 +436,172 @@ public:
     // Generate textures
 
 
-    bool generate_texture(std::vector<uint8_t>& colors, Image_statistics& stat, unsigned int randSeed,  unsigned int palette, int genMode = 0) const
+    bool generate_texture(std::vector<uint8_t>& colors, Image_statistics& stat,
+                          unsigned int randSeed, unsigned int palette, int genMode = 0) const
     {
-        // todo random device is used to seed the random number generators. This does maybe not work on some systems...
-        std::random_device rd;
-
-        unsigned int function_seed =randSeed;//settings.random_function_seed ? settings.random_function_seed : rd();
-        unsigned int color_seed =   randSeed;//settings.color_map_seed ? settings.color_map_seed : rd();
-
-        verbose(settings.verbose, "Function Seed: " + std::to_string(function_seed));
-        verbose(settings.verbose, "Color Seed:    " + std::to_string(color_seed));
-
-        // draw the random function
-        std::default_random_engine function_prng(function_seed);
-        std::uniform_int_distribution<unsigned int> depth_dist(settings.function_depth.min,
-                                                               settings.function_depth.max);
-
-        const RandomFunction rf(function_prng, 3, //depth_dist(function_prng),
-                                settings.function_param,
-                                genMode,
-                                settings.unary_function_pool_size,
-                                settings.binary_function_pool_size);
-
-        verbose(settings.verbose, "Function:\nf = " + rf.print());
-        verbose(settings.verbose, "depth: " + std::to_string(rf.get_depth()));
-
-        stat.function=rf.print();
-
-        // draw the color map
-        std::default_random_engine color_prng(color_seed);
-
-        const PolynomialColorMap cm(color_prng,
-                                    settings.pt,
-                                    settings.color_poly_deg,
-                                    settings.color_poly_param);
-
-        verbose(settings.verbose, "Color:\n" + cm.print());
-
-        // prepare for generation
-        const auto dim_x = static_cast<uint32_t>((settings.x.max - settings.x.min) * settings.resolution);
-        const auto dim_y = static_cast<uint32_t>((settings.y.max - settings.y.min) * settings.resolution);
-        const auto num_pixels = dim_x * dim_y;
-        const auto step_size = 1.f / static_cast<argument_type>(settings.resolution);
-
-        std::vector<argument_type> values(num_pixels);
-
-        float maxVal=-100000000;
-        float minVal= 100000000;
-        for(uint32_t y_px = 0; y_px < dim_y; y_px++)
-        {
-            const argument_type y = static_cast<argument_type>(y_px) * step_size + settings.y.min;
-            for(uint32_t x_px = 0; x_px < dim_x; x_px++)
-            {
-                const argument_type x = static_cast<argument_type>(x_px) * step_size + settings.x.min;
-                float tempVal = rf.eval(x, y);
-                values[pos_to_index(x_px, y_px, dim_x, dim_y)]=tempVal;
-                if(maxVal<tempVal)
-                    maxVal=tempVal;
-                if(minVal>tempVal)
-                    minVal=tempVal;
-            }
-        }
-
-        argument_type deltaVal=maxVal-minVal;
-        argument_type addVal=0;
-        if(minVal<0)
-            addVal=abs(minVal);
-
-
-        //std::vector<uint8_t> colors(num_pixels * 3);
+        const uint32_t dim_x = static_cast<uint32_t>(settings.resolution);
+        const uint32_t dim_y = static_cast<uint32_t>(settings.resolution);
+        const uint32_t num_pixels = dim_x * dim_y;
 
         colors.clear();
         colors.resize(num_pixels * 3);
 
+        // ── seeded RNG helpers ─────────────────────────────────────────────
+        std::default_random_engine prng(randSeed);
+        auto rnd = [&](float lo, float hi) -> float {
+            return lo + (hi - lo) * std::uniform_real_distribution<float>(0.f,1.f)(prng);
+        };
+        auto rndInt = [&](int lo, int hi) -> int {
+            return std::uniform_int_distribution<int>(lo, hi)(prng);
+        };
 
-        const auto normalize = settings.normalize;
-
-        // statistics
-        uint32_t acc_r = 0, acc_g = 0, acc_b = 0;
-        uint8_t  min_r = 255, min_g = 255, min_b = 255;
-        uint8_t  max_r = 0, max_g = 0, max_b = 0;
-
-        uint32_t white = 0,
-                 black = 0;
-
-        //Colormap generate
-        //{
-            using namespace colormap;
-            // Print RGB table of MATLAB::Jet colormap.
-           // transform::Ether colorMap;
-            transform::Ether colorMapEther;
-            transform::Space colorMapSpace;
-            transform::Malachite colorMapMalachite;
-            transform::Seismic colorMapSeismic;
-            transform::MorningGlory colorMapMorningGlory;
-
-
-    #ifdef FXPUBLISH
-            //std::cout << "category: " << colorMap.getCategory() << std::endl;
-            //std::cout << "title:    " << colorMap.getTitle() << std::endl;
-    #endif
-            /*
-            int const size = num_colors+1;
-            for(int ic=1; ic<=size;++ic)
-            {
-                float const x = ic / (float)size;
-                Color c = colorMap.getColor(x);
-                colorList.push_back(glm::vec4(c.r ,c.g ,c.b ,1.0));
+        // ── value noise helpers ────────────────────────────────────────────
+        auto hash2f = [](int x, int y) -> float {
+            unsigned int n = (unsigned int)(x + y * 57);
+            n = (n << 13u) ^ n;
+            n = n * (n * n * 15731u + 789221u) + 1376312589u;
+            return 1.0f - float(n & 0x7fffffffu) / 1073741824.0f;
+        };
+        auto smoothstep = [](float t) -> float {
+            return t * t * t * (t * (t * 6.f - 15.f) + 10.f);
+        };
+        auto bilerp = [](float a, float b, float c, float d, float u, float v) -> float {
+            return a + (b-a)*u + (c-a)*v + (d-b-c+a)*u*v;
+        };
+        auto vnoise = [&](float x, float y) -> float {
+            int xi = (int)std::floor(x);
+            int yi = (int)std::floor(y);
+            float xf = smoothstep(x - xi);
+            float yf = smoothstep(y - yi);
+            return bilerp(hash2f(xi,yi), hash2f(xi+1,yi),
+                          hash2f(xi,yi+1), hash2f(xi+1,yi+1), xf, yf);
+        };
+        auto fbm = [&](float x, float y, int oct) -> float {
+            float v=0.f, amp=0.5f, freq=1.f;
+            for(int o=0; o<oct; ++o){
+                v += amp * vnoise(x*freq, y*freq);
+                amp  *= 0.5f;
+                freq *= 2.0f;
             }
-            */
-        //}
+            return v; // ∈ [-1, 1] roughly
+        };
 
-//#pragma omp parallel for reduction(+:acc_r,acc_g,acc_b,white,black) reduction(min:min_r,min_g,min_b) reduction(max:max_r,max_g,max_b)
-        for(uint32_t y_px = 0; y_px < dim_y; y_px++)
+        // ── generate value map ─────────────────────────────────────────────
+        std::vector<float> values(num_pixels, 0.f);
+
+        if (genMode == 0) // ── Wavy: smooth low-frequency sine blend ─────────
         {
-            for(uint32_t x_px = 0; x_px < dim_x; x_px++)
-            {
-                const auto i = pos_to_index(x_px, y_px, dim_x, dim_y);
+            // 2–3 sine waves with gentle frequencies
+            float ax = rnd(1.f, 3.f),  px = rnd(0.f, 6.28f);
+            float ay = rnd(1.f, 3.f),  py = rnd(0.f, 6.28f);
+            float ad = rnd(0.5f,1.8f), pd = rnd(0.f, 6.28f);
+            float ar = rnd(0.3f,1.2f);
+            float cx = rnd(0.2f,0.8f), cy = rnd(0.2f,0.8f); // radial center
 
-                uint8_t r, g, b;
-                //cm.get_color(values[i], r, g, b);
+            for(uint32_t y=0; y<dim_y; ++y){
+                for(uint32_t x=0; x<dim_x; ++x){
+                    float fx = float(x)/dim_x;
+                    float fy = float(y)/dim_y;
+                    float dx = fx-cx, dy = fy-cy;
+                    float v =   sinf(ax*M_PI*fx + px)
+                              + sinf(ay*M_PI*fy + py)
+                              + 0.6f*sinf(ad*M_PI*(fx+fy) + pd)
+                              + 0.4f*sinf(ar*M_PI*sqrtf(dx*dx+dy*dy)*4.f);
+                    values[y*dim_x+x] = v;
+                }
+            }
+        }
+        else if (genMode == 2) // ── Geometric Chaos: FBM noise ──────────────
+        {
+            float scale = rnd(3.f, 7.f);
+            float ox    = rnd(0.f, 100.f), oy = rnd(0.f, 100.f);
+            int   oct   = rndInt(3, 6);
+            // optional domain warping for interesting swirls
+            float warpAmp = rnd(0.f, 0.5f);
 
-                float const x = (values[i]+addVal) / deltaVal;
-                Color c;
+            for(uint32_t y=0; y<dim_y; ++y){
+                for(uint32_t x=0; x<dim_x; ++x){
+                    float fx = float(x)/dim_x*scale + ox;
+                    float fy = float(y)/dim_y*scale + oy;
+                    // domain warp: offset sample position by another fbm
+                    float wx = fbm(fx + 1.7f, fy + 9.2f, 3);
+                    float wy = fbm(fx + 8.3f, fy + 2.8f, 3);
+                    values[y*dim_x+x] = fbm(fx + warpAmp*wx*scale,
+                                            fy + warpAmp*wy*scale, oct);
+                }
+            }
+        }
+        else // genMode == 1 ── High Contrast: plasma (sum of sines) ─────────
+        {
+            float f1 = rnd(2.f, 5.f), f2 = rnd(2.f, 5.f);
+            float f3 = rnd(1.f, 3.f), f4 = rnd(1.f, 3.f);
+            float p1 = rnd(0.f,6.28f), p2 = rnd(0.f,6.28f);
+            float cx = rnd(0.2f,0.8f), cy = rnd(0.2f,0.8f);
 
-                auto const& paletteColors = getArtisticPalette(palette);
-                float scaledX = x * (paletteColors.size() - 1);
-                int idx1 = (int)std::floor(scaledX);
-                int idx2 = (int)std::ceil(scaledX);
-                float t = scaledX - idx1;
-                idx1 = std::max(0, std::min(idx1, (int)paletteColors.size() - 1));
-                idx2 = std::max(0, std::min(idx2, (int)paletteColors.size() - 1));
-                
-                glm::vec4 c1 = paletteColors[idx1];
-                glm::vec4 c2 = paletteColors[idx2];
-                glm::vec4 interpolatedColor = c1 * (1.0f - t) + c2 * t;
-
-                c.r = interpolatedColor.r;
-                c.g = interpolatedColor.g;
-                c.b = interpolatedColor.b;
-
-                r= (uint8_t)(c.r*255.0);
-                g= (uint8_t)(c.g*255.0);
-                b= (uint8_t)(c.b*255.0);
-
-                colors[3 * i] =     r ;
-                colors[3 * i + 1] = g;
-                colors[3 * i + 2] = b;
-
-                // prepare statistics
-                white += close_to_white(r, g, b);
-                black += close_to_black(r, g, b);
-                acc_r += r;
-                acc_g += g;
-                acc_b += b;
-                min_r = std::min(min_r, r);
-                min_g = std::min(min_g, g);
-                min_b = std::min(min_b, b);
-                max_r = std::max(max_r, r);
-                max_g = std::max(max_g, g);
-                max_b = std::max(max_b, b);
+            for(uint32_t y=0; y<dim_y; ++y){
+                for(uint32_t x=0; x<dim_x; ++x){
+                    float fx = float(x)/dim_x;
+                    float fy = float(y)/dim_y;
+                    float r  = sqrtf((fx-cx)*(fx-cx)+(fy-cy)*(fy-cy));
+                    float v  = sinf(fx*f1*M_PI + p1)
+                             + sinf(fy*f2*M_PI + p2)
+                             + sinf((fx+fy)*f3*M_PI)
+                             + sinf(r*f4*M_PI*4.f);
+                    values[y*dim_x+x] = v;  // ∈ [-4, 4]
+                }
             }
         }
 
-        verbose(settings.verbose, "white pixels: " + std::to_string(static_cast<double>(white) / num_pixels));
-        verbose(settings.verbose, "black pixels: " + std::to_string(static_cast<double>(black) / num_pixels));
+        // ── normalize values to strict [0, 1] ─────────────────────────────
+        float minV = *std::min_element(values.begin(), values.end());
+        float maxV = *std::max_element(values.begin(), values.end());
+        float range = maxV - minV;
+        if(range < 1e-6f) return false; // flat image → skip
 
-        double mean_r = static_cast<double>(acc_r) / num_pixels;
-        double mean_g = static_cast<double>(acc_g) / num_pixels;
-        double mean_b = static_cast<double>(acc_b) / num_pixels;
+        for(auto& v : values)
+            v = (v - minV) / range;
 
-        // find single color images
-        if((max_r - min_r < 35 && max_g - min_g < 55 && max_b - min_b < 35)
-            || white > num_pixels * 0.55 || black > num_pixels * 0.55)
-        {
-            verbose(settings.verbose, "Single color image -> trying again");
+        // ── apply artistic palette ─────────────────────────────────────────
+        const auto& pal = getArtisticPalette(palette);
+        const float lastIdx = float(pal.size() - 1);
+
+        uint32_t acc_r=0, acc_g=0, acc_b=0;
+        uint8_t  min_r=255, min_g=255, min_b=255;
+        uint8_t  max_r=0,   max_g=0,   max_b=0;
+        uint32_t white=0,   black=0;
+
+        for(uint32_t i=0; i<num_pixels; ++i){
+            float scaledX = std::max(0.f, std::min(1.f, values[i])) * lastIdx;
+            int   idx1 = std::min((int)std::floor(scaledX), (int)pal.size()-1);
+            int   idx2 = std::min((int)std::ceil (scaledX), (int)pal.size()-1);
+            float t    = scaledX - idx1;
+
+            glm::vec4 c = pal[idx1]*(1.f-t) + pal[idx2]*t;
+            uint8_t r = (uint8_t)(std::max(0.f,std::min(1.f,c.r))*255.f);
+            uint8_t g = (uint8_t)(std::max(0.f,std::min(1.f,c.g))*255.f);
+            uint8_t b = (uint8_t)(std::max(0.f,std::min(1.f,c.b))*255.f);
+
+            colors[3*i]=r; colors[3*i+1]=g; colors[3*i+2]=b;
+
+            white += close_to_white(r,g,b);
+            black += close_to_black(r,g,b);
+            acc_r+=r; acc_g+=g; acc_b+=b;
+            min_r=std::min(min_r,r); min_g=std::min(min_g,g); min_b=std::min(min_b,b);
+            max_r=std::max(max_r,r); max_g=std::max(max_g,g); max_b=std::max(max_b,b);
+        }
+
+        // reject too-uniform or all-white/black textures
+        if((max_r-min_r<25 && max_g-min_g<25 && max_b-min_b<25)
+            || white > num_pixels*0.6f || black > num_pixels*0.6f)
             return false;
-        }
 
-        double var_r, var_g, var_b;
+        // ── fill statistics ────────────────────────────────────────────────
+        stat.acc_r=acc_r; stat.acc_g=acc_g; stat.acc_b=acc_b;
+        stat.min_r=min_r; stat.min_g=min_g; stat.min_b=min_b;
+        stat.max_r=max_r; stat.max_g=max_g; stat.max_b=max_b;
+        stat.white=white; stat.black=black;
+        stat.function = (genMode==0) ? "wavy" : (genMode==2) ? "fbm_noise" : "plasma";
 
-        std::tie(var_r, var_g, var_b) = get_color_variances(colors, mean_r, mean_g, mean_b);
-
-        if(var_r < 0.21 && var_g < 0.21 && var_b < 0.21)
-        {
-            verbose(settings.verbose, "Single color image -> trying again");
-            return false;
-        }
-
-        if(normalize)
-        {
-            verbose(settings.verbose, "Normalizing:\n"
-                "min:  " + std::to_string(min_r) + ", " + std::to_string(min_g) + ", " + std::to_string(min_b) + "\n" +
-                "max:  " + std::to_string(max_r) + ", " + std::to_string(max_g) + ", " + std::to_string(max_b) + "\n" +
-                "mean: " + std::to_string(mean_r) + ", " + std::to_string(mean_g) + ", " + std::to_string(mean_b) + "\n" +
-                "var:  " + std::to_string(var_r) + ", " + std::to_string(var_g) + ", " + std::to_string(var_b));
-
-//#pragma omp parallel for
-            for (size_t i = 0; i < num_pixels; i++)
-            {
-                if(var_r < 0.001)
-                    colors[i * 3 + 0] = static_cast<uint8_t>((static_cast<double>(colors[i * 3 + 0]) - mean_r) / (var_r / 3));
-                if(var_g < 0.001)
-                    colors[i * 3 + 1] = static_cast<uint8_t>((static_cast<double>(colors[i * 3 + 1]) - mean_g) / (var_g / 3));
-                if(var_b < 0.001)
-                    colors[i * 3 + 2] = static_cast<uint8_t>((static_cast<double>(colors[i * 3 + 2]) - mean_b) / (var_b / 3));
-            }
-        }
-
-        stat.acc_b=acc_b;
-        stat.acc_g=acc_g;
-        stat.acc_r=acc_r;
-
-        stat.black=black;
-        stat.white=white;
-        stat.max_b=max_b;
-        stat.max_g=max_g;
-        stat.max_r=max_r;
-
-        stat.min_b=min_b;
-        stat.min_g=min_g;
-        stat.min_r=min_r;
-
-
-        // calculate the image from the color values.
-        /*
-        if(settings.generate_all_color_permutations)
-            store_image_color_permutaions(dim_x, dim_y, function_seed, color_seed, colors);
-        else
-            store_image(dim_x, dim_y, function_seed, color_seed, colors);
-*/
         return true;
     }
 

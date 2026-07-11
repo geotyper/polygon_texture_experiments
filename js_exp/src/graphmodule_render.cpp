@@ -3,6 +3,7 @@
 #endif
 
 #include "graphmodule.hpp"
+#include <fstream>
 
 #define shortMenu false
 
@@ -668,12 +669,14 @@ void GraphModule::draw_PolygonsUV(vector<vector<VertexPosUV>>& triangulatePolygo
                   glActiveTexture(GL_TEXTURE0);
                   int textureIndex = 0;
                   if (isOffset) {
-                      if (ip >= 0 && ip < (int)solver.polyLib.arr.trianglesOffset_parent_polygon_id.size()) {
-                          textureIndex = solver.polyLib.arr.trianglesOffset_parent_polygon_id[ip] % solver.textureIndexList.size();
+                      const auto& texIds = solver.polyLib.arr.polygon_texture_id_offset;
+                      if (ip >= 0 && ip < (int)texIds.size()) {
+                          textureIndex = texIds[ip] % (int)solver.textureIndexList.size();
                       }
                   } else {
-                      if (ip >= 0 && ip < (int)solver.polyLib.arr.triangles_parent_polygon_id.size()) {
-                          textureIndex = solver.polyLib.arr.triangles_parent_polygon_id[ip] % solver.textureIndexList.size();
+                      const auto& texIds = solver.polyLib.arr.polygon_texture_id;
+                      if (ip >= 0 && ip < (int)texIds.size()) {
+                          textureIndex = texIds[ip] % (int)solver.textureIndexList.size();
                       }
                   }
                   glBindTexture(GL_TEXTURE_2D, solver.textureIndexList[textureIndex]);

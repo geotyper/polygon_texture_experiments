@@ -91,6 +91,7 @@ bool Solver::generate_image(int genMode)
     GLsizei const w = static_cast<GLsizei>(function_image.width);
     GLsizei const h = static_cast<GLsizei>(function_image.height);
 
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glBindTexture(GL_TEXTURE_2D,   function_image.id);
     glTexImage2D(GL_TEXTURE_2D, 0,  GL_RGB, w, h, 0, GL_RGB,  GL_UNSIGNED_BYTE, colors.data());
     glBindTexture(GL_TEXTURE_2D, 0u);
@@ -100,6 +101,7 @@ bool Solver::generate_image(int genMode)
         GLuint tempIndex=textureIndexList[lineSize*lineSize-1];
         GLuint tempIndexBegin=textureIndexList[lineSize*lineSize-1];
 
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glBindTexture(GL_TEXTURE_2D, tempIndex);
         glTexImage2D(GL_TEXTURE_2D, 0,  GL_RGB, w, h, 0, GL_RGB,  GL_UNSIGNED_BYTE, colors.data());
         glBindTexture(GL_TEXTURE_2D, 0u);
@@ -124,6 +126,7 @@ void Solver::fillAllTextures(int genMode)
     GLsizei const h = static_cast<GLsizei>(function_image.height);
 
     // Update the separate preview texture (ID 2) so it stays in sync
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     ga.generate_texture(colors, stat, (unsigned int)randomFloat(0, 100000), palette, genMode);
     glBindTexture(GL_TEXTURE_2D, function_image.id);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, colors.data());
