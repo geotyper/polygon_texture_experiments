@@ -246,6 +246,7 @@ struct SimDynamicParameters{
     float smoothingTension = 0.5f;
     float smoothingPointsPerUnit = 0.2f;
     float smoothingZoom = 1.0f;
+    float generalZoom = 1.0f;
     int subdivisionDepth = 0;
     int subdivisionMode = 0; // 0: Centroid, 1: Skeleton
     bool enablePolygonMerging = false;

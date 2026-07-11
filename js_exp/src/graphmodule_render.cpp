@@ -249,6 +249,7 @@ void GraphModule::draw_ImGui() {
         {
             simRunParam.triangulatePolygons = true;
         }
+        ImGui::SliderFloat("General Zoom", &simDynParam.generalZoom, 0.2f, 3.0f, "%.2f");
 
         const char* bgPresets[] = { "Original Dark Blue", "Dark Gray", "Cinematic Black", "Charcoal", "Cream / Sepia", "Pure White", "Custom Color" };
         static int selectedBg = 0; // Default: Original Dark Blue
@@ -454,6 +455,9 @@ void GraphModule::draw_Points(std::vector<InstanceParticle> &pointList) {
     {
         glUseProgram(graphicProcessor.circleInstance.prog);
         {
+            GLint zoomLoc = glGetUniformLocation(graphicProcessor.circleInstance.prog, "uZoom");
+            if (zoomLoc != -1) glUniform1f(zoomLoc, simDynParam.generalZoom);
+
             glBindBuffer(GL_UNIFORM_BUFFER, graphicProcessor.circleInCircle.uniform.ubo );
 
             glBindBuffer(GL_ARRAY_BUFFER, graphicProcessor.circleInstance.vbo_inst);
@@ -475,6 +479,9 @@ void GraphModule::draw_Constraints() {
     //glViewport(0, 0, mainScreenWidth,mainScreenHeight);
     glUseProgram(graphicProcessor.constraints.prog);
     {
+          GLint zoomLoc = glGetUniformLocation(graphicProcessor.constraints.prog, "uZoom");
+          if (zoomLoc != -1) glUniform1f(zoomLoc, simDynParam.generalZoom);
+
           GLint colorLoc = glGetUniformLocation(graphicProcessor.constraints.prog, "uConstraintColor");
           if (colorLoc != -1) {
               glUniform3f(colorLoc, simDynParam.constraintColor.r, simDynParam.constraintColor.g, simDynParam.constraintColor.b);
@@ -500,6 +507,9 @@ void GraphModule::draw_Constraints(std::vector<glm::vec2>&  constraintListDraw) 
     //glViewport(0, 0, mainScreenWidth,mainScreenHeight);
     glUseProgram(graphicProcessor.constraints.prog);
     {
+          GLint zoomLoc = glGetUniformLocation(graphicProcessor.constraints.prog, "uZoom");
+          if (zoomLoc != -1) glUniform1f(zoomLoc, simDynParam.generalZoom);
+
           GLint colorLoc = glGetUniformLocation(graphicProcessor.constraints.prog, "uConstraintColor");
           if (colorLoc != -1) {
               glUniform3f(colorLoc, simDynParam.constraintColor.r, simDynParam.constraintColor.g, simDynParam.constraintColor.b);
@@ -530,6 +540,9 @@ void GraphModule::draw_Polygons(const vector<vector<TrianglesDrawStruct>>& trian
 
     glUseProgram(graphicProcessor.polygon.prog);
     {
+          GLint zoomLoc = glGetUniformLocation(graphicProcessor.polygon.prog, "uZoom");
+          if (zoomLoc != -1) glUniform1f(zoomLoc, simDynParam.generalZoom);
+
           glBindBuffer ( GL_UNIFORM_BUFFER, graphicProcessor.box.uniform.ubo);
 
           glBindVertexArray(graphicProcessor.polygon.vao);
@@ -551,6 +564,9 @@ void GraphModule::draw_Polygons(const vector<vector<TrianglesDrawStruct>>& trian
 void GraphModule::draw_Polygons(vector<vector<TrianglesDrawStruct>>& triangulatePolygons_in, vector<vector<unsigned int>>& triangulatePolygonsIndex_in) {
     glUseProgram(graphicProcessor.polygon.prog);
     {
+          GLint zoomLoc = glGetUniformLocation(graphicProcessor.polygon.prog, "uZoom");
+          if (zoomLoc != -1) glUniform1f(zoomLoc, simDynParam.generalZoom);
+
           glBindBuffer ( GL_UNIFORM_BUFFER, graphicProcessor.box.uniform.ubo);
           glBindVertexArray(graphicProcessor.polygon.vao);
           for(int i=0+simRunParam.minusSmallestPolygons; i<triangulatePolygons_in.size()-simRunParam.minusBiggestPolygons;i++)
@@ -572,6 +588,9 @@ void GraphModule::draw_Polygons(vector<vector<TrianglesDrawStruct>>& triangulate
 void GraphModule::draw_PolygonsSort(vector<vector<TrianglesDrawStruct>>& triangulatePolygons_in, vector<vector<unsigned int>>& triangulatePolygonsIndex_in) {
     glUseProgram(graphicProcessor.polygon.prog);
     {
+          GLint zoomLoc = glGetUniformLocation(graphicProcessor.polygon.prog, "uZoom");
+          if (zoomLoc != -1) glUniform1f(zoomLoc, simDynParam.generalZoom);
+
           glBindBuffer ( GL_UNIFORM_BUFFER, graphicProcessor.box.uniform.ubo);
           glBindVertexArray(graphicProcessor.polygon.vao);
           bool isOffset = (&triangulatePolygons_in == &solver.polyLib.trianglesOffset_draw_vertex);
@@ -598,6 +617,8 @@ void GraphModule::draw_PolygonsUV(vector<vector<VertexPosUV>>& triangulatePolygo
         //glViewport(0, 0, mainScreenWidth,mainScreenHeight);
         glUseProgram(graphicProcessor.polygonGA.prog);
         {
+              GLint zoomLoc = glGetUniformLocation(graphicProcessor.polygonGA.prog, "uZoom");
+              if (zoomLoc != -1) glUniform1f(zoomLoc, simDynParam.generalZoom);
               bool isOffset = (&triangulatePolygons_in == &solver.polyLib.arr.triangles_draw_vertexOffsetUV);
               for(int i=0+simRunParam.minusSmallestPolygons; i<triangulatePolygons_in.size()-simRunParam.minusBiggestPolygons;i++)
               {
@@ -643,6 +664,8 @@ void GraphModule::draw_Polygons() {
 
         glUseProgram(graphicProcessor.constraints.prog);
         {
+            GLint zoomLoc = glGetUniformLocation(graphicProcessor.constraints.prog, "uZoom");
+            if (zoomLoc != -1) glUniform1f(zoomLoc, simDynParam.generalZoom);
             glBindVertexArray(graphicProcessor.constraints.vao);
             for(int i=0; i<polygonsListOffset.size();++i)
             {

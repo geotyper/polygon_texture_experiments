@@ -26,13 +26,19 @@ vec2 rotate(vec2 v, float a) {
 	return m * v;
 }
 
+uniform float uZoom;
+
 void main() {
 
   //int instId=gl_InstanceIndex;
 
 	vec2 scaledPos=vec2(instanceScale*inPos.x,instanceScale*inPos.y);
 	scaledPos=rotate(scaledPos, instanceRot);
-	vec3 pos = vec3(2.0*(scaledPos.x+instancePos.x)/uWorldSize.x-1.0,2.0*(scaledPos.y+instancePos.y)/uWorldSize.y-1.0,0.0);
+  
+  vec2 worldPos = scaledPos + instancePos;
+  vec2 centered = worldPos - uWorldSize * 0.5;
+  vec2 zoomedPos = centered * uZoom + uWorldSize * 0.5;
+	vec3 pos = vec3(2.0*(zoomedPos.x)/uWorldSize.x-1.0,2.0*(zoomedPos.y)/uWorldSize.y-1.0,0.0);
 
   gl_Position = vec4(pos, 1.0f);
 
