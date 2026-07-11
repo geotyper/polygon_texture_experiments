@@ -325,6 +325,23 @@ bool GraphModule::InitImGui()
     ImGui_ImplSDL2_InitForOpenGL(screen, gContext);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
+#ifdef USE_JS
+    char* data = (char*)EM_ASM_INT({
+        var dataStr = localStorage.getItem("imgui_ini");
+        if (dataStr) {
+            var lengthBytes = lengthBytesUTF8(dataStr) + 1;
+            var stringOnWasmHeap = _malloc(lengthBytes);
+            stringToUTF8(dataStr, stringOnWasmHeap, lengthBytes);
+            return stringOnWasmHeap;
+        }
+        return 0;
+    });
+    if (data) {
+        ImGui::LoadIniSettingsFromMemory(data);
+        free(data);
+    }
+#endif
+
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
     // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
@@ -696,7 +713,7 @@ bool GraphModule::FrameBufferDrawStep()
     //glClear(GL_COLOR_BUFFER_BIT);
     shaderutils.teardown(viewport);
 
-    glViewport(0, 0, mainScreenWidth, mainScreenHeight);
+    glViewport(mainScreenWidth - mainScreenHeight, 0, mainScreenHeight, mainScreenHeight);
     glUseProgram(graphicProcessor.framebufferBox.prog);
     {
           glBindVertexArray(graphicProcessor.framebufferBox.vao);

@@ -59,7 +59,7 @@ public:
     bool initRun=true;
 
     //---------------------------------------------------------------------
-    int mainScreenWidth= 1000;
+    int mainScreenWidth= 1350;
     int mainScreenHeight=1000;
 
     uint width;

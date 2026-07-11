@@ -155,6 +155,12 @@ void Solver::initParticles(int numParticles, glm::vec2 worldSize_, SimDynamicPar
 
     if (simDynParams.pointPlacementMode == 0) // Radial
     {
+        float targetMaxRadius = std::min(worldSize.x, worldSize.y) * 0.40f;
+        float autoStep = targetMaxRadius * std::sqrt(M_PI / (float)numParticles);
+        step = autoStep;
+        radiusStep = step;
+        simDynParams.initConstraintDist = autoStep * 1.15f;
+
         int numberCircles=75;
         for (auto i = 1; i < numberCircles ; i++) {
             const unsigned int numberSegments= M_PI * 2.0f*(radiusStep*i)/step;

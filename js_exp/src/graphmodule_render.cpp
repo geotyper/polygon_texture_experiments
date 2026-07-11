@@ -1,3 +1,7 @@
+#ifdef USE_JS
+#include <emscripten.h>
+#endif
+
 #include "graphmodule.hpp"
 
 #define shortMenu false
@@ -418,6 +422,23 @@ void GraphModule::draw_ImGui() {
    // glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+#ifdef USE_JS
+    {
+        size_t size = 0;
+        const char* data = ImGui::SaveIniSettingsToMemory(&size);
+        if (data && size > 0) {
+            EM_ASM({
+                var dataStr = UTF8ToString($0);
+                try {
+                    localStorage.setItem("imgui_ini", dataStr);
+                } catch (e) {
+                    console.error("Failed to save imgui settings to localStorage:", e);
+                }
+            }, data);
+        }
+    }
+#endif
 
 
 }
