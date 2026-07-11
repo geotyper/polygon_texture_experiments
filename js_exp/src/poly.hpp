@@ -72,6 +72,7 @@ public:
     //vector<vector<TrianglesDrawStruct> > TriangulationPolygon(vector<vector<glm::vec2> > &polygonList_in);;
     vector<vector<TrianglesDrawStruct> > TriangulationPolygon(vector<vector<glm::vec2> > &polygonList_in, bool offset, int palette);
     void Triangulation(vector<vector<glm::vec2> > &polygonList_in, int palette);
+    void RecolorPolygons(int palette);
 };
 
 #endif // POLY_HPP

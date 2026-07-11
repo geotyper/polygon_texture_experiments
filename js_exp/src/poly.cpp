@@ -480,7 +480,26 @@ vector<vector<glm::vec2>> PolyLib::testForPolygons(std::vector<PointData> &point
     if (simParam.enableSmoothing) {
         vector<vector<glm::vec2>> smoothedResult;
         for (auto& poly : result) {
-            smoothedResult.push_back(smoothPolygon(poly, simParam.smoothingTension, simParam.smoothingPointsPerUnit));
+            int n = poly.size();
+            int nUnique = n;
+            if (n >= 2 && glm::distance(poly.front(), poly.back()) < 1e-4f) {
+                nUnique = n - 1;
+            }
+            if (nUnique > 0 && simParam.smoothingZoom != 1.0f) {
+                glm::vec2 center(0.0f);
+                for (int i = 0; i < nUnique; ++i) {
+                    center += poly[i];
+                }
+                center /= (float)nUnique;
+
+                auto scaledPoly = poly;
+                for (int i = 0; i < n; ++i) {
+                    scaledPoly[i] = center + (poly[i] - center) * simParam.smoothingZoom;
+                }
+                smoothedResult.push_back(smoothPolygon(scaledPoly, simParam.smoothingTension, simParam.smoothingPointsPerUnit));
+            } else {
+                smoothedResult.push_back(smoothPolygon(poly, simParam.smoothingTension, simParam.smoothingPointsPerUnit));
+            }
         }
         result = smoothedResult;
     }
@@ -511,4 +530,36 @@ vector<vector<TrianglesDrawStruct>> PolyLib::TriangulationPolygon(vector<vector<
      vector<vector<TrianglesDrawStruct>> result;
      result=arr.triangulatePolygons(polygonList_in,32, offset,palette);
      return result;
+}
+
+void PolyLib::RecolorPolygons(int palette)
+{
+    int num_colors = 32;
+    std::vector<glm::vec4> colorList = arr.generateColorList(palette, num_colors);
+
+    // Recolor non-offset triangles
+    if (triangles_draw_vertex.size() == arr.polygonColorIndices.size()) {
+        for (size_t ip = 0; ip < triangles_draw_vertex.size(); ++ip) {
+            int rnd_color = arr.polygonColorIndices[ip];
+            if (rnd_color >= 0 && rnd_color < (int)colorList.size()) {
+                glm::vec4 tempColor = colorList[rnd_color];
+                for (auto& vertex : triangles_draw_vertex[ip]) {
+                    vertex.color = tempColor;
+                }
+            }
+        }
+    }
+
+    // Recolor offset triangles
+    if (trianglesOffset_draw_vertex.size() == arr.polygonColorIndicesOffset.size()) {
+        for (size_t ip = 0; ip < trianglesOffset_draw_vertex.size(); ++ip) {
+            int rnd_color = arr.polygonColorIndicesOffset[ip];
+            if (rnd_color >= 0 && rnd_color < (int)colorList.size()) {
+                glm::vec4 tempColor = colorList[rnd_color];
+                for (auto& vertex : trianglesOffset_draw_vertex[ip]) {
+                    vertex.color = tempColor;
+                }
+            }
+        }
+    }
 }

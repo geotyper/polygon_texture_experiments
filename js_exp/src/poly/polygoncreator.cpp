@@ -127,142 +127,17 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
        polygonDataOffset.clear();
        areaListOffset.clear();
        triangles_draw_vertexOffsetUV.clear();
+       polygonColorIndicesOffset.clear();
     }
     else
     {
        polygonData.clear();
        areaList.clear();
        triangles_draw_vertexUV.clear();
+       polygonColorIndices.clear();
     }
 
-    vector<glm::vec4> colorList;
-    /*
-    for(int ic=1; ic<=num_colors+1;++ic)
-    {
-        colorList.push_back(glm::vec4(tinycolormap::GetColor(float(ic)/num_colors,tinycolormap::ColormapType::Magma).ConvertToGLM(),1.0));
-    }
-*/
-    //Colormap generate
-    if (palette >= 5)
-    {
-        std::vector<std::vector<glm::vec4>> artisticPalettes = {
-            // Palette 5: Neo-Art (Vibrant, sophisticated pop color palette)
-            {
-                glm::vec4(0.18f, 0.08f, 0.35f, 1.0f),    // Deep Aubergine
-                glm::vec4(0.68f, 0.45f, 0.90f, 1.0f),    // Electric Lavender
-                glm::vec4(0.00f, 0.72f, 0.70f, 1.0f),    // Rich Teal
-                glm::vec4(0.95f, 0.65f, 0.10f, 1.0f),    // Amber Gold
-                glm::vec4(0.92f, 0.28f, 0.32f, 1.0f),    // Neo Coral
-                glm::vec4(0.42f, 0.05f, 0.25f, 1.0f),    // Plum Wine
-                glm::vec4(0.85f, 0.95f, 0.88f, 1.0f)     // Mint Cream
-            },
-            // Palette 6: Noir (Deep charcoal, slate, ash, silver, with a dramatic Blood Burgundy accent)
-            {
-                glm::vec4(0.06f, 0.06f, 0.08f, 1.0f),    // Velvet Black
-                glm::vec4(0.18f, 0.20f, 0.22f, 1.0f),    // Gunmetal Gray
-                glm::vec4(0.35f, 0.38f, 0.42f, 1.0f),    // Foggy Slate
-                glm::vec4(0.68f, 0.70f, 0.72f, 1.0f),    // Cool Silver
-                glm::vec4(0.94f, 0.92f, 0.88f, 1.0f),    // Creamy Bone White
-                glm::vec4(0.55f, 0.04f, 0.12f, 1.0f),    // Blood Burgundy (Accent)
-                glm::vec4(0.10f, 0.11f, 0.15f, 1.0f)     // Deep Shadow Indigo
-            },
-            // Palette 7: Primitivism (Earthy ochres, terracottas, and natural pigments)
-            {
-                glm::vec4(0.15f, 0.13f, 0.12f, 1.0f),    // Charcoal Clay
-                glm::vec4(0.72f, 0.31f, 0.20f, 1.0f),    // Burnt Terracotta
-                glm::vec4(0.82f, 0.58f, 0.22f, 1.0f),    // Raw Ochre Yellow
-                glm::vec4(0.42f, 0.48f, 0.38f, 1.0f),    // Sage Dust Green
-                glm::vec4(0.38f, 0.24f, 0.18f, 1.0f),    // Earth Brown
-                glm::vec4(0.92f, 0.88f, 0.80f, 1.0f),    // Bone Ash White
-                glm::vec4(0.55f, 0.20f, 0.15f, 1.0f)     // Red Ochre
-            },
-            // Palette 8: Cyberpunk (Neon fuchsia, cyber navy, holographic cyan, and lime)
-            {
-                glm::vec4(0.95f, 0.05f, 0.52f, 1.0f),    // Neon Magenta
-                glm::vec4(0.45f, 0.02f, 0.85f, 1.0f),    // Electric Violet
-                glm::vec4(0.05f, 0.06f, 0.18f, 1.0f),    // Deep Cyber Navy
-                glm::vec4(0.78f, 0.95f, 0.05f, 1.0f),    // Acid Lime Tint
-                glm::vec4(0.00f, 0.85f, 0.88f, 1.0f),    // Holographic Cyan
-                glm::vec4(0.95f, 0.42f, 0.08f, 1.0f),    // Dusk Tangerine
-                glm::vec4(0.25f, 0.12f, 0.45f, 1.0f)     // Synthwave Purple
-            },
-            // Palette 9: Pastel / Dreams (Dreamy, soft-luminous, delicate pastel sky/cloudscape tones)
-            {
-                glm::vec4(0.92f, 0.78f, 0.78f, 1.0f),    // Dusty Soft Rose
-                glm::vec4(0.82f, 0.75f, 0.88f, 1.0f),    // Wisteria Lavender
-                glm::vec4(0.72f, 0.82f, 0.90f, 1.0f),    // Muted Powder Blue
-                glm::vec4(0.78f, 0.88f, 0.82f, 1.0f),    // Pale Sage Mint
-                glm::vec4(0.98f, 0.96f, 0.92f, 1.0f),    // Cream Pearl White
-                glm::vec4(0.96f, 0.82f, 0.75f, 1.0f),    // Soft Apricot Peach
-                glm::vec4(0.35f, 0.38f, 0.48f, 1.0f)     // Muted Twilight Indigo (Depth Contrast)
-            },
-            // Palette 10: Bauhaus / Constructivism (Warm tomato red, Prussian blue, mustard ochre, aged cream)
-            {
-                glm::vec4(0.78f, 0.15f, 0.12f, 1.0f),    // Vintage Bauhaus Red
-                glm::vec4(0.12f, 0.28f, 0.48f, 1.0f),    // Muted Prussian Blue
-                glm::vec4(0.88f, 0.68f, 0.18f, 1.0f),    // Mustard Ochre
-                glm::vec4(0.93f, 0.89f, 0.80f, 1.0f),    // Aged Poster Cream
-                glm::vec4(0.08f, 0.08f, 0.08f, 1.0f),    // Ink Black
-                glm::vec4(0.62f, 0.32f, 0.15f, 1.0f),    // Rust Sienna
-                glm::vec4(0.28f, 0.28f, 0.30f, 1.0f)     // Charcoal Slate
-            }
-        };
-
-        int pIdx = (palette - 5);
-        if (pIdx < 0) pIdx = 0;
-        if (pIdx >= (int)artisticPalettes.size()) pIdx = (int)artisticPalettes.size() - 1;
-
-        const auto& selectedPal = artisticPalettes[pIdx];
-        int const size = num_colors + 1;
-        for (int ic = 1; ic <= size; ++ic)
-        {
-            glm::vec4 c = selectedPal[(ic - 1) % selectedPal.size()];
-            colorList.push_back(c);
-        }
-    }
-    else
-    {
-        using namespace colormap;
-        // Print RGB table of MATLAB::Jet colormap.
-       // transform::Ether colorMap;
-        transform::Ether colorMapEther;
-        transform::Space colorMapSpace;
-        transform::Malachite colorMapMalachite;
-        transform::Seismic colorMapSeismic;
-        transform::MorningGlory colorMapMorningGlory;
-#ifdef FXPUBLISH
-       // std::cout << "category: " << colorMap.getCategory() << std::endl;
-       // std::cout << "title:    " << colorMap.getTitle() << std::endl;
-#endif
-        int const size = num_colors+1;
-        for(int ic=1; ic<=size;++ic)
-        {
-            float const x = ic / (float)size;
-            Color c;
-            switch(palette)
-            {
-                case 0:
-                    c= colorMapEther.getColor(x);
-                    break;
-                case 1:
-                    c= colorMapSpace.getColor(x);
-                    break;
-                case 2:
-                    c= colorMapMalachite.getColor(x);
-                    break;
-                case 3:
-                    c= colorMapSeismic.getColor(x);
-                    break;
-                case 4:
-                    c= colorMapMorningGlory.getColor(x);
-                    break;
-                default:
-                    c= colorMapEther.getColor(x);
-                    break;
-            }
-            colorList.push_back(glm::vec4(c.r ,c.g ,c.b ,1.0));
-        }
-    }
+    vector<glm::vec4> colorList = generateColorList(palette, num_colors);
 
     for(int ip=0;ip<polygonList_in.size();ip++)
     {
@@ -394,12 +269,14 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
            areaListOffset.push_back({counter,abs(area)});
            triangles_draw_vertexOffsetUV.push_back(tempVertexUV);
            polygonDataOffset.push_back(tempPolygon);
+           polygonColorIndicesOffset.push_back(rnd_color);
         }
         else
         {
            areaList.push_back({counter,abs(area)});
            triangles_draw_vertexUV.push_back(tempVertexUV);
            polygonData.push_back(tempPolygon);
+           polygonColorIndices.push_back(rnd_color);
         }
 
         counter++;
@@ -507,4 +384,124 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygonsVoron
 
     return triangles_draw_vertex;
 
+}
+
+std::vector<glm::vec4> ArrangementBuilder::generateColorList(int palette, int num_colors)
+{
+    std::vector<glm::vec4> colorList;
+    if (palette >= 5)
+    {
+        std::vector<std::vector<glm::vec4>> artisticPalettes = {
+            // Palette 5: Neo-Art (Vibrant, sophisticated pop color palette)
+            {
+                glm::vec4(0.18f, 0.08f, 0.35f, 1.0f),    // Deep Aubergine
+                glm::vec4(0.68f, 0.45f, 0.90f, 1.0f),    // Electric Lavender
+                glm::vec4(0.00f, 0.72f, 0.70f, 1.0f),    // Rich Teal
+                glm::vec4(0.95f, 0.65f, 0.10f, 1.0f),    // Amber Gold
+                glm::vec4(0.92f, 0.28f, 0.32f, 1.0f),    // Neo Coral
+                glm::vec4(0.42f, 0.05f, 0.25f, 1.0f),    // Plum Wine
+                glm::vec4(0.85f, 0.95f, 0.88f, 1.0f)     // Mint Cream
+            },
+            // Palette 6: Noir (Deep charcoal, slate, ash, silver, with a dramatic Blood Burgundy accent)
+            {
+                glm::vec4(0.06f, 0.06f, 0.08f, 1.0f),    // Velvet Black
+                glm::vec4(0.18f, 0.20f, 0.22f, 1.0f),    // Gunmetal Gray
+                glm::vec4(0.35f, 0.38f, 0.42f, 1.0f),    // Foggy Slate
+                glm::vec4(0.68f, 0.70f, 0.72f, 1.0f),    // Cool Silver
+                glm::vec4(0.94f, 0.92f, 0.88f, 1.0f),    // Creamy Bone White
+                glm::vec4(0.55f, 0.04f, 0.12f, 1.0f),    // Blood Burgundy (Accent)
+                glm::vec4(0.10f, 0.11f, 0.15f, 1.0f)     // Deep Shadow Indigo
+            },
+            // Palette 7: Primitivism (Earthy ochres, terracottas, and natural pigments)
+            {
+                glm::vec4(0.15f, 0.13f, 0.12f, 1.0f),    // Charcoal Clay
+                glm::vec4(0.72f, 0.31f, 0.20f, 1.0f),    // Burnt Terracotta
+                glm::vec4(0.82f, 0.58f, 0.22f, 1.0f),    // Raw Ochre Yellow
+                glm::vec4(0.42f, 0.48f, 0.38f, 1.0f),    // Sage Dust Green
+                glm::vec4(0.38f, 0.24f, 0.18f, 1.0f),    // Earth Brown
+                glm::vec4(0.92f, 0.88f, 0.80f, 1.0f),    // Bone Ash White
+                glm::vec4(0.55f, 0.20f, 0.15f, 1.0f)     // Red Ochre
+            },
+            // Palette 8: Cyberpunk (Neon fuchsia, cyber navy, holographic cyan, and lime)
+            {
+                glm::vec4(0.95f, 0.05f, 0.52f, 1.0f),    // Neon Magenta
+                glm::vec4(0.45f, 0.02f, 0.85f, 1.0f),    // Electric Violet
+                glm::vec4(0.05f, 0.06f, 0.18f, 1.0f),    // Deep Cyber Navy
+                glm::vec4(0.78f, 0.95f, 0.05f, 1.0f),    // Acid Lime Tint
+                glm::vec4(0.00f, 0.85f, 0.88f, 1.0f),    // Holographic Cyan
+                glm::vec4(0.95f, 0.42f, 0.08f, 1.0f),    // Dusk Tangerine
+                glm::vec4(0.25f, 0.12f, 0.45f, 1.0f)     // Synthwave Purple
+            },
+            // Palette 9: Pastel / Dreams (Dreamy, soft-luminous, delicate pastel sky/cloudscape tones)
+            {
+                glm::vec4(0.92f, 0.78f, 0.78f, 1.0f),    // Dusty Soft Rose
+                glm::vec4(0.82f, 0.75f, 0.88f, 1.0f),    // Wisteria Lavender
+                glm::vec4(0.72f, 0.82f, 0.90f, 1.0f),    // Muted Powder Blue
+                glm::vec4(0.78f, 0.88f, 0.82f, 1.0f),    // Pale Sage Mint
+                glm::vec4(0.98f, 0.96f, 0.92f, 1.0f),    // Cream Pearl White
+                glm::vec4(0.96f, 0.82f, 0.75f, 1.0f),    // Soft Apricot Peach
+                glm::vec4(0.35f, 0.38f, 0.48f, 1.0f)     // Muted Twilight Indigo (Depth Contrast)
+            },
+            // Palette 10: Bauhaus / Constructivism (Warm tomato red, Prussian blue, mustard ochre, aged cream)
+            {
+                glm::vec4(0.78f, 0.15f, 0.12f, 1.0f),    // Vintage Bauhaus Red
+                glm::vec4(0.12f, 0.28f, 0.48f, 1.0f),    // Muted Prussian Blue
+                glm::vec4(0.88f, 0.68f, 0.18f, 1.0f),    // Mustard Ochre
+                glm::vec4(0.93f, 0.89f, 0.80f, 1.0f),    // Aged Poster Cream
+                glm::vec4(0.08f, 0.08f, 0.08f, 1.0f),    // Ink Black
+                glm::vec4(0.62f, 0.32f, 0.15f, 1.0f),    // Rust Sienna
+                glm::vec4(0.28f, 0.28f, 0.30f, 1.0f)     // Charcoal Slate
+            }
+        };
+
+        int pIdx = (palette - 5);
+        if (pIdx < 0) pIdx = 0;
+        if (pIdx >= (int)artisticPalettes.size()) pIdx = (int)artisticPalettes.size() - 1;
+
+        const auto& selectedPal = artisticPalettes[pIdx];
+        int const size = num_colors + 1;
+        for (int ic = 1; ic <= size; ++ic)
+        {
+            glm::vec4 c = selectedPal[(ic - 1) % selectedPal.size()];
+            colorList.push_back(c);
+        }
+    }
+    else
+    {
+        using namespace colormap;
+        transform::Ether colorMapEther;
+        transform::Space colorMapSpace;
+        transform::Malachite colorMapMalachite;
+        transform::Seismic colorMapSeismic;
+        transform::MorningGlory colorMapMorningGlory;
+        int const size = num_colors+1;
+        for(int ic=1; ic<=size;++ic)
+        {
+            float const x = ic / (float)size;
+            Color c;
+            switch(palette)
+            {
+                case 0:
+                    c= colorMapEther.getColor(x);
+                    break;
+                case 1:
+                    c= colorMapSpace.getColor(x);
+                    break;
+                case 2:
+                    c= colorMapMalachite.getColor(x);
+                    break;
+                case 3:
+                    c= colorMapSeismic.getColor(x);
+                    break;
+                case 4:
+                    c= colorMapMorningGlory.getColor(x);
+                    break;
+                default:
+                    c= colorMapEther.getColor(x);
+                    break;
+            }
+            colorList.push_back(glm::vec4(c.r ,c.g ,c.b ,1.0));
+        }
+    }
+    return colorList;
 }

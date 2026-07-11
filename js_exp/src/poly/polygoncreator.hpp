@@ -44,6 +44,9 @@ public:
     std::vector<PolygonData> polygonData;
     std::vector<PolygonData> polygonDataOffset;
 
+    std::vector<int> polygonColorIndices;
+    std::vector<int> polygonColorIndicesOffset;
+
     vector<vector<VertexPosUV>> triangles_draw_vertexUV;
     vector<vector<VertexPosUV>> triangles_draw_vertexOffsetUV;
 
@@ -52,6 +55,7 @@ public:
 
 
     void calcPolygon(PolygonInfo &polygonInfo, std::vector<glm::vec2> &polygon);
+    std::vector<glm::vec4> generateColorList(int palette, int num_colors);
 
 
 private:

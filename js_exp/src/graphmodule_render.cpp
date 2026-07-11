@@ -178,6 +178,12 @@ void GraphModule::draw_ImGui() {
                 simRunParam.generateOffset=true;
                 simRunParam.triangulatePolygons=true;
             }
+            if(ImGui::SliderFloat("Interpolation Zoom", &simDynParam.smoothingZoom, 0.7f, 1.3f, "%.2f"))
+            {
+                simRunParam.generatePolygons=true;
+                simRunParam.generateOffset=true;
+                simRunParam.triangulatePolygons=true;
+            }
         }
 
         ImGui::Separator();
@@ -222,7 +228,7 @@ void GraphModule::draw_ImGui() {
         if (ImGui::Combo("Palette Selection", &currentPalette, palettes, IM_ARRAYSIZE(palettes)))
         {
             solver.palette = (unsigned int)currentPalette;
-            simRunParam.triangulatePolygons = true;
+            simRunParam.recolorPolygons = true;
         }
 
         const char* bgPresets[] = { "Original Dark Blue", "Dark Gray", "Cinematic Black", "Charcoal", "Cream / Sepia", "Pure White", "Custom Color" };

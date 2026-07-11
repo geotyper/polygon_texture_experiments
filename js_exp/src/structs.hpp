@@ -245,6 +245,7 @@ struct SimDynamicParameters{
     bool enableSmoothing = false;
     float smoothingTension = 0.5f;
     float smoothingPointsPerUnit = 0.2f;
+    float smoothingZoom = 1.0f;
     int subdivisionDepth = 0;
     float subdivisionMinArea = 500.0f;
     glm::vec3 constraintColor = glm::vec3(0.75f, 0.90f, 0.75f);
@@ -299,6 +300,7 @@ struct SimRunParameters{
     bool generateOffset=false;
     bool generateSweepLine=false;
     bool triangulatePolygons=false;
+    bool recolorPolygons=false;
 
     bool runPolygonPipeline=false;
 

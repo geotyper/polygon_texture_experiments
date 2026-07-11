@@ -764,6 +764,11 @@ bool GraphModule::Step()
 
     }
 
+    if(simRunParam.recolorPolygons){
+        simRunParam.recolorPolygons=false;
+        solver.polyLib.RecolorPolygons(solver.palette);
+    }
+
     if(simRunParam.runPolygonPipeline){
         simRunParam.runPolygonPipeline=false;
 
