@@ -134,7 +134,7 @@ public:
         // image settings. Images dimensions are max_x * resolution x max_y * resolution.
         Domain<argument_type> x = {0.f, 1.f};
         Domain<argument_type> y = {0.f, 1.f};
-        unsigned int resolution = 150;
+        unsigned int resolution = 300;
 
         Settings() = default;
 
