@@ -280,122 +280,122 @@ vector<vector<TrianglesDrawStruct>> ArrangementBuilder::triangulatePolygons(vect
             if(polygonList_in[ip].size()<3)
                 continue;
 
-            Path subj;
+            Path path;
             for(auto point:polygonList_in[ip])
             {
-                subj << IntPoint(point.x,point.y);
+                path << IntPoint(point.x,point.y);
             }
 
-            double areaPoly=Area(subj);
-
+            double areaPoly=Area(path);
             if(abs(areaPoly)<minPolygonArea)
                 continue;
 
             int rnd_color=rand() % num_colors + 1;
-            glm::vec4 tempColor=colorList[rnd_color];
 
-            TPPLPartition pp;
+            Clipper c;
+            c.AddPath(path, ptSubject, true);
 
-            TPPLPoly *poly=new TPPLPoly;
-            TPPLPolyList *polys=new TPPLPolyList;
+            PolyTree solution;
+            c.Execute(ctUnion, solution, pftNonZero, pftNonZero);
 
-            int nPoints = polygonList_in[ip].size();
-            if (nPoints >= 2 && glm::distance(polygonList_in[ip].front(), polygonList_in[ip].back()) < 1e-4f) {
-                nPoints--;
-            }
+            PolyNode* node = solution.GetFirst();
+            while (node) {
+                if (!node->IsHole() && !node->Contour.empty()) {
+                    TPPLPolyList localPolys;
 
-            if (nPoints < 3) {
-                delete poly;
-                delete polys;
-                continue;
-            }
+                    TPPLPoly outerPoly;
+                    outerPoly.Init(node->Contour.size());
+                    for (size_t i = 0; i < node->Contour.size(); ++i) {
+                        outerPoly[i].x = node->Contour[i].X;
+                        outerPoly[i].y = node->Contour[i].Y;
+                    }
+                    outerPoly.SetOrientation(TPPLOrientation::TPPL_ORIENTATION_CCW);
+                    outerPoly.SetHole(false);
+                    localPolys.push_back(outerPoly);
 
-            poly->Init(nPoints);
-            for (int i = 0; i < nPoints; i++) {
-                (*poly)[i].x = polygonList_in[ip][i].x;
-                (*poly)[i].y = polygonList_in[ip][i].y;
-            }
-
-            poly->SetOrientation(TPPLOrientation::TPPL_ORIENTATION_CCW);
-
-            int res=pp.Triangulate_OPT(poly,polys);
-            if (res == 0) {
-                res = pp.Triangulate_EC(poly, polys);
-            }
-            if (res == 0) {
-                res = pp.Triangulate_MONO(poly, polys);
-            }
-
-            PolygonData tempPolygon;
-            calcPolygon(tempPolygon.polyInfo, polygonList_in[ip]);
-
-            vector<TrianglesDrawStruct> tempVertex;
-            vector<unsigned int> tempIndex;
-            vector<VertexPosUV> tempVertexUV;
-
-            float area=0;
-
-            list<TPPLPoly>::iterator iter;
-            if(res==1)
-            {
-                for (iter = polys->begin(); iter != polys->end(); iter++) {
-                    iter->SetOrientation( TPPLOrientation::TPPL_ORIENTATION_CW);
-                    Path subj;
-
-                    for (int i = 0; i < iter->GetNumPoints(); i++) {
-                        TrianglesDrawStruct tempStructTriangle;
-                        tempStructTriangle.pos=(glm::vec2(iter->GetPoint(i).x ,iter->GetPoint(i).y));
-                        tempStructTriangle.color=tempColor;
-                        tempVertex.push_back(tempStructTriangle);
-                        tempIndex.push_back(i);
-
-                        subj << IntPoint(iter->GetPoint(i).x ,iter->GetPoint(i).y);
-
-                        VertexPosUV tempPosUV;
-                        tempPosUV.pos=(glm::vec2(iter->GetPoint(i).x ,iter->GetPoint(i).y));
-                        tempPosUV.uv=tempPosUV.pos-tempPolygon.polyInfo.minboxCoord+tempPolygon.polyInfo.center;
-
-                        if(tempPolygon.polyInfo.width>0)
-                            tempPosUV.uv.x/=1.5*tempPolygon.polyInfo.width;
-                        else
-                            tempPosUV.uv.x=0;
-                        if(tempPolygon.polyInfo.height>0)
-                            tempPosUV.uv.y/=1.5*tempPolygon.polyInfo.height;
-                        else
-                            tempPosUV.uv.y=0;
-
-                        tempVertexUV.push_back(tempPosUV);
+                    for (auto* child : node->Childs) {
+                        if (child->IsHole() && !child->Contour.empty()) {
+                            TPPLPoly holePoly;
+                            holePoly.Init(child->Contour.size());
+                            for (size_t i = 0; i < child->Contour.size(); ++i) {
+                                holePoly[i].x = child->Contour[i].X;
+                                holePoly[i].y = child->Contour[i].Y;
+                            }
+                            holePoly.SetOrientation(TPPLOrientation::TPPL_ORIENTATION_CW);
+                            holePoly.SetHole(true);
+                            localPolys.push_back(holePoly);
+                        }
                     }
 
-                    double areaTri=Area(subj);
-                    area+=abs(areaTri);
+                    TPPLPartition pp;
+                    TPPLPolyList polys;
+                    int res = pp.Triangulate_EC(&localPolys, &polys);
+                    if (res == 0) {
+                        res = pp.Triangulate_MONO(&localPolys, &polys);
+                    }
+
+                    if (res == 1) {
+                        for (auto iter = polys.begin(); iter != polys.end(); iter++) {
+                            iter->SetOrientation(TPPLOrientation::TPPL_ORIENTATION_CW);
+
+                            std::vector<TrianglesDrawStruct> tempVertex;
+                            std::vector<unsigned int> tempIndex;
+                            std::vector<VertexPosUV> tempVertexUV;
+
+                            std::vector<glm::vec2> simpleVertices;
+                            for (int i = 0; i < iter->GetNumPoints(); i++) {
+                                simpleVertices.push_back(glm::vec2(iter->GetPoint(i).x, iter->GetPoint(i).y));
+                            }
+
+                            PolygonData tempPolygon;
+                            calcPolygon(tempPolygon.polyInfo, simpleVertices);
+
+                            Path subj;
+                            for (int i = 0; i < iter->GetNumPoints(); i++) {
+                                TrianglesDrawStruct tempStructTriangle;
+                                tempStructTriangle.pos = glm::vec2(iter->GetPoint(i).x, iter->GetPoint(i).y);
+                                tempStructTriangle.color = colorList[rnd_color];
+                                tempVertex.push_back(tempStructTriangle);
+                                tempIndex.push_back(i);
+
+                                subj << IntPoint(iter->GetPoint(i).x, iter->GetPoint(i).y);
+
+                                VertexPosUV tempPosUV;
+                                tempPosUV.pos = glm::vec2(iter->GetPoint(i).x, iter->GetPoint(i).y);
+                                tempPosUV.uv = tempPosUV.pos - tempPolygon.polyInfo.minboxCoord + tempPolygon.polyInfo.center;
+                                if (tempPolygon.polyInfo.width > 0)
+                                    tempPosUV.uv.x /= 1.5 * tempPolygon.polyInfo.width;
+                                else
+                                    tempPosUV.uv.x = 0;
+                                if (tempPolygon.polyInfo.height > 0)
+                                    tempPosUV.uv.y /= 1.5 * tempPolygon.polyInfo.height;
+                                else
+                                    tempPosUV.uv.y = 0;
+                                tempVertexUV.push_back(tempPosUV);
+                            }
+
+                            double areaTri = Area(subj);
+
+                            triangles_draw_vertex.push_back(tempVertex);
+                            triangles_draw_index.push_back(tempIndex);
+
+                            if (offset == true) {
+                                areaListOffset.push_back({counter, abs(areaTri)});
+                                triangles_draw_vertexOffsetUV.push_back(tempVertexUV);
+                                polygonDataOffset.push_back(tempPolygon);
+                                polygonColorIndicesOffset.push_back(rnd_color);
+                            } else {
+                                areaList.push_back({counter, abs(areaTri)});
+                                triangles_draw_vertexUV.push_back(tempVertexUV);
+                                polygonData.push_back(tempPolygon);
+                                polygonColorIndices.push_back(rnd_color);
+                            }
+                            counter++;
+                        }
+                    }
                 }
+                node = node->GetNext();
             }
-
-            tempPolygon.polyInfo.area=abs(area);
-
-            triangles_draw_vertex.push_back(tempVertex);
-            triangles_draw_index.push_back(tempIndex);
-
-            delete poly;
-            delete polys;
-
-            if(offset==true)
-            {
-               areaListOffset.push_back({counter,abs(area)});
-               triangles_draw_vertexOffsetUV.push_back(tempVertexUV);
-               polygonDataOffset.push_back(tempPolygon);
-               polygonColorIndicesOffset.push_back(rnd_color);
-            }
-            else
-            {
-               areaList.push_back({counter,abs(area)});
-               triangles_draw_vertexUV.push_back(tempVertexUV);
-               polygonData.push_back(tempPolygon);
-               polygonColorIndices.push_back(rnd_color);
-            }
-
-            counter++;
         }
     }
 
